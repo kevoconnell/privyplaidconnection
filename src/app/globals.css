@@ -1,76 +1,129 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-privy: #5b50ff;
+  --color-privy-strong: #4338ff;
+  --color-foreground: #f5f7ff;
+  --color-muted: rgba(245, 247, 255, 0.68);
+  --color-card: rgba(10, 9, 34, 0.72);
+  --color-border: rgba(116, 130, 255, 0.35);
+  --shadow-privy: 0 15px 35px rgba(67, 56, 255, 0.35);
+  --shadow-surface: 0 20px 55px rgba(0, 0, 0, 0.35);
+  --tracking-tag: 0.2em;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter);
-  --font-abc-favorit: var(--font-abc-favorit);
+.fade-in {
+  animation: fadeIn 1s ease-in forwards;
 }
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+:root {
+  --background: rgba(245, 247, 255, 0.72);
+  --foreground: #111217;
+  --muted: rgba(17, 18, 23, 0.56);
+  --surface-text-primary: rgba(17, 18, 23, 1);
+  --surface-text-secondary: rgba(17, 18, 23, 1);
+  --card: rgba(245, 247, 255, 0.78);
+  --border: rgba(17, 18, 23, 0.15);
+  --tag-border: rgba(17, 18, 23, 0.12);
+  --tag-background: rgba(17, 18, 23, 0.05);
+  --gradient-1: radial-gradient(120% 120% at 50% 0%, rgba(91, 79, 255, 0.16), transparent 65%);
+  --gradient-2: radial-gradient(100% 140% at 0% 0%, rgba(28, 172, 255, 0.12), transparent 55%);
+}
+
+.dark {
+  --background: #040217;
+   --foreground: #f5f7ff;
+  --muted: rgba(245, 247, 255, 0.68);
+  --surface-text-primary: rgba(245, 247, 255, 0.95);
+  --surface-text-secondary: rgba(245, 247, 255, 0.7);
+  --card: rgba(10, 9, 34, 0.78);
+  --border: rgba(116, 130, 255, 0.28);
+  --tag-border: rgba(255, 255, 255, 0.12);
+  --tag-background: rgba(255, 255, 255, 0.08);
+  --gradient-1: radial-gradient(120% 120% at 50% 0%, rgba(91, 79, 255, 0.24), transparent 65%);
+  --gradient-2: radial-gradient(100% 140% at 0% 0%, rgba(28, 172, 255, 0.12), transparent 55%);
+}
+
+
 
 body {
-  background: var(--background);
+  min-height: 100vh;
+  background: var(--gradient-1), var(--gradient-2), var(--background);
   color: var(--foreground);
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), "Inter", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-@layer components {
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+@layer utilities {
+  .glass-card {
+    @apply rounded-3xl border  backdrop-blur-md;
+  }
+
   .button-primary {
-    @apply bg-[#5B4FFF] hover:bg-[#4A3EE6] focus:bg-[#4A3EE6] active:bg-[#3F35D9]
-           disabled:bg-gray-300 disabled:cursor-not-allowed
-           text-white font-medium
-           px-4 py-2 rounded-md
-           border border-transparent
-           transition-colors duration-200 ease-in-out
-           focus:outline-none focus:ring-2 focus:ring-[#5B4FFF] focus:ring-offset-2
-           inline-flex items-center justify-center
-           text-sm leading-5 cursor-pointer;
+    @apply inline-flex items-center justify-center rounded-full bg-privy px-6 py-3 font-medium text-white shadow-privy transition-all duration-200 hover:bg-privy-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-privy;
   }
 
-  .button-outline {
-    @apply flex flex-row items-center
-           px-4 py-2 gap-1 cursor-pointer
-           h-9 rounded-full
-           bg-transparent border border-[#5B4FFF]
-           text-[#5B4FFF] font-medium text-sm leading-tight
-           hover:bg-[#5B4FFF] hover:text-white
-           focus:bg-[#5B4FFF] focus:text-white
-           active:bg-[#4A3EE6]
-           focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2
-           transition-all duration-200 ease-in-out
-           disabled:opacity-50 disabled:cursor-not-allowed;
+  .button-secondary {
+    @apply inline-flex items-center justify-center rounded-full border border-white/20 px-6 py-3 font-medium text-white/90 transition-all duration-200 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white;
   }
 
-  .button {
-    @apply flex flex-row items-center
-           px-3 py-2 gap-3 cursor-pointer
-           bg-white border border-[#E2E3F0] rounded-xl
-           text-[#040217] font-normal text-base leading-6
-           hover:bg-gray-50 hover:border-gray-300
-           focus:bg-gray-50 focus:border-gray-300
-           active:bg-gray-100
-           focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2
-           transition-all duration-200 ease-in-out
-           disabled:opacity-50 disabled:cursor-not-allowed
-           box-border;
+  .tag {
+    @apply inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs uppercase tracking-tag text-privy;
+    border-color: var(--tag-border);
+    background-color: var(--tag-background);
+  }
+
+  .h-screen-offset {
+    height: calc(100vh - var(--header-height));
+  }
+
+  .h-header {
+    height: var(--header-height);
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.45s ease-out both;
+  }
+
+  .animate-fade-in-delayed {
+    animation: fade-in 0.45s ease-out both;
+    animation-delay: 0.05s;
   }
 
   .text-primary {
-    @apply text-[#5B4FFF];
-  }
-  .border-primary {
-    @apply border-[#5B4FFF];
+    color: var(--surface-text-primary);
   }
 
-  .loader-overlay {
-    @apply absolute left-0 top-0 z-10 flex h-full w-full items-center justify-center bg-white/30;
-    animation: fade-in 150ms ease-in forwards;
+  .text-secondary {
+    color: var(--surface-text-secondary);
   }
 }
+
+#plaid-link-container,
+#plaid-link-container > div {
+  background: rgba(4, 2, 23, 0.55) !important;
+  backdrop-filter: blur(12px);
+}
+
 
 @keyframes fade-in {
   from {

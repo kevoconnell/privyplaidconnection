@@ -1,0 +1,144 @@
+import { PLAID_BASE_URLS } from "@/utils/plaid";
+import { PrivyClient } from "@privy-io/server-auth";
+import { cookies, headers } from "next/headers";
+import { NextRequest, NextResponse } from "next/server";
+
+import type {
+  LinkTokenCreateRequest,
+  LinkTokenCreateRequestUser,
+  LinkTokenCreateResponse,
+  Products,
+} from "plaid";
+
+function buildLinkTokenRequest(
+  base: Partial<LinkTokenCreateRequest> | null
+): LinkTokenCreateRequest {
+  if (!base) {
+    throw new Error("Request body is required");
+  }
+
+  const {
+    client_name,
+    language = "en",
+    country_codes = ["US"],
+    client_id: _clientId,
+    secret: _secret,
+    products = [],
+    ...rest
+  } = base;
+
+  const clientName = typeof client_name === "string" ? client_name.trim() : "";
+  if (!clientName) {
+    throw new Error("client_name must be provided in the request body");
+  }
+
+  const normalizedCountryCodes = country_codes.map((code) =>
+    (code as string).trim()
+  );
+
+  return {
+    ...(rest as Record<string, unknown>),
+    client_name: clientName,
+    language,
+    country_codes: normalizedCountryCodes,
+    products,
+  } as LinkTokenCreateRequest;
+}
+
+export async function POST(request: NextRequest) {
+  //Note: in prod this would be a call to get the config
+  const clientId = process.env.PLAID_CLIENT_ID;
+  const secret = process.env.PLAID_SECRET;
+
+  const idToken = request.headers.get("privy-id-token");
+
+  if (!idToken) {
+    return NextResponse.json(
+      { error: "Missing Privy ID token" },
+      { status: 401 }
+    );
+  }
+
+  const privy = new PrivyClient(
+    process.env.NEXT_PUBLIC_PRIVY_APP_ID!,
+    process.env.PRIVY_APP_SECRET!
+  );
+
+  // Parse and verify the token
+  const user = await privy.getUser({ idToken: idToken });
+
+  if (!user) {
+    return NextResponse.json(
+      { error: "Invalid Privy ID token" },
+      { status: 401 }
+    );
+  }
+
+  const baseRequest =
+    (await (async () => {
+      if (!request.headers.get("content-type")?.includes("application/json")) {
+        return null;
+      }
+
+      return (await request
+        .json()
+        .catch(() => null)) as Partial<LinkTokenCreateRequest> | null;
+    })()) ?? null;
+
+  try {
+    const environment = process.env.PLAID_ENV ?? "sandbox";
+    const linkTokenRequest = buildLinkTokenRequest(baseRequest);
+
+    const plaidResponse = await fetch(
+      `${
+        PLAID_BASE_URLS[environment as keyof typeof PLAID_BASE_URLS]
+      }/link/token/create`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...linkTokenRequest,
+          client_id: clientId,
+          secret,
+        }),
+      }
+    );
+
+    if (!plaidResponse.ok) {
+      const errorText = await plaidResponse.text().catch(() => "");
+
+      return NextResponse.json(
+        {
+          error: errorText || "Failed to create Plaid link token",
+        },
+        { status: plaidResponse.status }
+      );
+    }
+
+    const data = (await plaidResponse
+      .json()
+      .catch(() => null)) as LinkTokenCreateResponse | null;
+
+    if (!data?.link_token) {
+      return NextResponse.json(
+        { error: "Plaid link token missing from response" },
+        { status: 502 }
+      );
+    }
+
+    return NextResponse.json(data);
+  } catch (error) {
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Unexpected error creating Plaid link token";
+
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
