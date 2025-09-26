@@ -139,7 +139,7 @@ export default function PlaidLinkPage() {
   return (
     <>
       <main className="flex min-h-screen flex-col text-foreground">
-        <header className="mx-auto flex w-full max-w-4xl items-center justify-between px-4 py-6">
+        <header className="mx-auto flex w-full max-w-4xl items-center justify-between px-3 py-4 sm:px-4 sm:py-5 md:py-6">
           <div className="flex items-center gap-2">
             <span className="tag text-xs md:text-sm">
               Plaid + Privy connector
