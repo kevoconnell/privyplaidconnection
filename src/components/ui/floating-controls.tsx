@@ -11,11 +11,7 @@ export function FloatingControls() {
         href="https://github.com/kevoconnell/privyplaidconnection"
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex h-12 w-12 items-center justify-center rounded-full border text-[var(--foreground)] transition hover:scale-105 hover:shadow-lg"
-        style={{
-          backgroundColor: "var(--card)",
-          borderColor: "var(--border)",
-        }}
+        className="control-pill"
         aria-label="Open GitHub repository"
       >
         <FaGithub className="h-5 w-5" />

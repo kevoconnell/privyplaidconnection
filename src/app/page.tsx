@@ -7,25 +7,17 @@ import { useAtomValue } from "jotai";
 import { FloatingControls } from "@/components/ui/floating-controls";
 import { usePrivyWithPlaid } from "@/hooks/usePrivyWithPlaid";
 import { plaidStatusAtom, plaidUserAtom } from "@/store/plaid";
-
-const formatter = new Intl.DateTimeFormat("en", {
-  month: "short",
-  day: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-});
+import { ConnectionStatusCard } from "@/components/ui/connection-status-card";
+import { StepCard } from "@/components/ui/step-card";
+import { SignInButton } from "@/components/sign-in-button";
 
 export default function PlaidLinkPage() {
   const router = useRouter();
 
-  const { linkPlaid, unlinkPlaid, authenticated, ready, user, login, logout } =
+  const { linkPlaid, unlinkPlaid, authenticated, ready, login } =
     usePrivyWithPlaid();
   const plaidUser = useAtomValue(plaidUserAtom);
   const plaidStatus = useAtomValue(plaidStatusAtom);
-  const metadata = plaidUser?.metadata ?? null;
-  const accounts = metadata?.accounts ?? [];
-  const institution = metadata?.institution ?? null;
-
   const step = useMemo(() => {
     if (!authenticated) {
       return 1;
@@ -38,6 +30,7 @@ export default function PlaidLinkPage() {
     return 3;
   }, [authenticated, plaidUser?.publicToken]);
 
+  // TODO: Move this to a separate hook with a atom to track current step
   const {
     stepLabel,
     stepSubtitle,
@@ -146,38 +139,19 @@ export default function PlaidLinkPage() {
   return (
     <>
       <main className="flex min-h-screen flex-col text-foreground">
-        <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6">
-          <div className="flex items-center gap-3">
-            <span className="tag">Plaid + Privy connector</span>
+        <header className="mx-auto flex w-full max-w-4xl items-center justify-between px-4 py-6">
+          <div className="flex items-center gap-2">
+            <span className="tag text-xs md:text-sm">
+              Plaid + Privy connector
+            </span>
           </div>
-          <div className="flex items-center gap-3 text-sm text-secondary">
-            {authenticated && user ? (
-              <>
-                <span className="hidden sm:inline">
-                  {user.email?.address ?? user.id}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    logout();
-                  }}
-                  className="button-primary"
-                >
-                  Sign out
-                </button>
-              </>
-            ) : (
-              <button type="button" onClick={login} className="button-primary">
-                Sign in with Privy
-              </button>
-            )}
-          </div>
+          <SignInButton />
         </header>
 
         <section className="flex-1">
-          <div className="mx-auto w-full max-w-6xl px-6 pb-16 pt-10">
+          <div className="mx-auto w-full max-w-5xl px-4 pb-16 pt-10">
             <div className="mb-10 text-left">
-              <h1 className="text-4xl font-semibold leading-tight text-primary md:text-5xl">
+              <h1 className="text-3xl font-semibold leading-tight text-primary md:text-4xl">
                 Link a bank in seconds using{" "}
                 <span className="text-privy">Privy</span> + Plaid
               </h1>
@@ -185,198 +159,37 @@ export default function PlaidLinkPage() {
 
             <div
               key={`step-${step}`}
-              className="grid gap-8 lg:grid-cols-5 lg:items-stretch"
+              className="grid gap-6 lg:grid-cols-5 lg:items-stretch"
             >
-              <div
-                className="flex h-full min-h-112 flex-col rounded-3xl border p-10 text-left text-secondary backdrop-blur-xl lg:col-span-3 lg:h-112"
-                style={{
-                  backgroundColor: "var(--tag-background)",
-                  borderColor: "var(--tag-border)",
-                  boxShadow: "var(--shadow-surface)",
-                }}
-              >
-                <div className="flex flex-1 flex-col">
-                  <div className="mb-6 flex flex-wrap items-center gap-3">
-                    <span className="tag">{stepLabel}</span>
-                    <span className="text-sm text-secondary">
-                      {stepSubtitle}
-                    </span>
-                  </div>
-                  <h2 className="text-4xl font-semibold leading-snug text-primary md:text-5xl">
-                    {headline}
-                  </h2>
-                  <p className="mt-4 max-w-xl text-base leading-7 text-secondary">
-                    {bodyCopy}
-                  </p>
-                  {supplementalNote && (
-                    <p className="mt-3 text-sm text-secondary">
-                      {supplementalNote}
-                    </p>
-                  )}
-                </div>
+              <StepCard
+                stepLabel={stepLabel}
+                stepSubtitle={stepSubtitle}
+                headline={headline}
+                body={bodyCopy}
+                supplementalNote={supplementalNote || undefined}
+                primaryAction={
+                  step === 3
+                    ? undefined
+                    : {
+                        label: primaryButtonLabel,
+                        onClick: handlePrimaryCta,
+                        disabled: linkingDisabled,
+                      }
+                }
+                secondaryAction={
+                  step === 3 && plaidUser?.publicToken
+                    ? {
+                        label: "Unlink current Plaid connection",
+                        onClick: unlinkPlaid,
+                      }
+                    : undefined
+                }
+              />
 
-                <div className="mt-auto flex flex-wrap items-center gap-4 pt-10">
-                  {step !== 3 && (
-                    <button
-                      type="button"
-                      onClick={handlePrimaryCta}
-                      className="button-primary"
-                      disabled={linkingDisabled}
-                    >
-                      {primaryButtonLabel}
-                    </button>
-                  )}
-
-                  {step === 3 && plaidUser?.publicToken && (
-                    <button
-                      type="button"
-                      onClick={unlinkPlaid}
-                      className="button-secondary"
-                    >
-                      Unlink current Plaid connection
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <aside
-                className="flex h-full min-h-112 flex-col gap-6 rounded-3xl border p-8 text-secondary backdrop-blur-xl lg:col-span-2"
-                style={{
-                  backgroundColor: "var(--tag-background)",
-                  borderColor: "var(--tag-border)",
-                  boxShadow: "var(--shadow-surface)",
-                }}
-              >
-                <header>
-                  <h3 className="text-lg font-semibold text-primary">
-                    Connection status
-                  </h3>
-                  <p className="text-sm text-secondary">
-                    Inspect the data captured when Plaid Link completes.
-                  </p>
-                </header>
-
-                {plaidStatus.error && (
-                  <div
-                    className="rounded-2xl border bg-red-500/20 px-4 py-3 text-sm text-red-100"
-                    style={{ borderColor: "var(--tag-border)" }}
-                  >
-                    {plaidStatus.error.message}
-                  </div>
-                )}
-
-                <div className="grid gap-3 text-sm text-secondary">
-                  <div
-                    className="rounded-2xl border px-4 py-3"
-                    style={{
-                      backgroundColor: "var(--tag-background)",
-                      borderColor: "var(--tag-border)",
-                    }}
-                  >
-                    <p className="text-xs uppercase tracking-widest text-secondary">
-                      Link token
-                    </p>
-                    <div className="group relative inline-block">
-                      <p className="break-all text-sm font-medium text-primary">
-                        {plaidUser?.linkToken
-                          ? plaidUser.linkToken.slice(0, 10) +
-                            "..." +
-                            plaidUser.linkToken.slice(-10)
-                          : "—"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div
-                    className="rounded-2xl border px-4 py-3"
-                    style={{
-                      backgroundColor: "var(--tag-background)",
-                      borderColor: "var(--tag-border)",
-                    }}
-                  >
-                    <p className="text-xs uppercase tracking-widest text-secondary">
-                      Public token
-                    </p>
-                    <p className="break-all text-sm font-medium text-primary">
-                      {plaidUser?.publicToken
-                        ? plaidUser.publicToken.slice(0, 10) +
-                          "..." +
-                          plaidUser.publicToken.slice(-10)
-                        : "—"}
-                    </p>
-                  </div>
-
-                  <div
-                    className="rounded-2xl border px-4 py-3"
-                    style={{
-                      backgroundColor: "var(--tag-background)",
-                      borderColor: "var(--tag-border)",
-                    }}
-                  >
-                    <p className="text-xs uppercase tracking-widest text-secondary">
-                      Institution
-                    </p>
-                    {institution ? (
-                      <p className="text-sm font-medium text-primary">
-                        {institution.name}
-                        <span className="ml-2 text-xs text-secondary">
-                          ({institution.institution_id})
-                        </span>
-                      </p>
-                    ) : (
-                      <p className="text-sm text-secondary">Not connected</p>
-                    )}
-                  </div>
-                </div>
-
-                {accounts.length > 0 ? (
-                  <div className="space-y-3">
-                    <p className="text-xs uppercase tracking-widest text-secondary">
-                      Accounts
-                    </p>
-                    <ul className="space-y-2 text-sm text-secondary">
-                      {accounts.map((account) => (
-                        <li
-                          key={account.id}
-                          className="rounded-xl border px-4 py-3"
-                          style={{
-                            backgroundColor: "var(--tag-background)",
-                            borderColor: "var(--tag-border)",
-                          }}
-                        >
-                          <p className="font-medium text-primary">
-                            {account.name ?? "Untitled account"}
-                            {account.mask && (
-                              <span className="ml-2 text-xs text-secondary">
-                                •••• {account.mask}
-                              </span>
-                            )}
-                          </p>
-                          <p className="text-xs text-secondary">
-                            {account.type ?? "Unknown"}
-                            {account.subtype ? ` • ${account.subtype}` : ""}
-                          </p>
-                          {account.verification_status && (
-                            <p className="text-xs text-secondary">
-                              Verification: {account.verification_status}
-                            </p>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : (
-                  <div
-                    className="rounded-2xl border px-4 py-3 text-sm text-secondary"
-                    style={{
-                      backgroundColor: "var(--tag-background)",
-                      borderColor: "var(--tag-border)",
-                    }}
-                  >
-                    Accounts will appear here after completing Plaid Link.
-                  </div>
-                )}
-              </aside>
+              <ConnectionStatusCard
+                plaidStatus={plaidStatus}
+                plaidUser={plaidUser}
+              />
             </div>
           </div>
         </section>

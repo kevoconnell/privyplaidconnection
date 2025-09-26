@@ -116,6 +116,27 @@ a:hover {
   .text-secondary {
     color: var(--surface-text-secondary);
   }
+
+  .surface-card {
+    background-color: var(--tag-background);
+    border-color: var(--tag-border);
+    box-shadow: var(--shadow-surface);
+  }
+
+  .surface-panel {
+    background-color: var(--tag-background);
+    border-color: var(--tag-border);
+  }
+
+  .border-tag {
+    border-color: var(--tag-border);
+  }
+
+  .control-pill {
+    @apply inline-flex h-12 w-12 items-center justify-center rounded-full border text-[var(--foreground)] transition hover:scale-105 hover:shadow-lg;
+    background-color: var(--card);
+    border-color: var(--border);
+  }
 }
 
 #plaid-link-container,

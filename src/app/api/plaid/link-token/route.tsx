@@ -46,7 +46,7 @@ function buildLinkTokenRequest(
 }
 
 export async function POST(request: NextRequest) {
-  //Note: in prod this would be a call to get the config
+  //todo: in prod this would be a call to get the config
   const clientId = process.env.PLAID_CLIENT_ID;
   const secret = process.env.PLAID_SECRET;
 

@@ -95,11 +95,7 @@ export function ThemeControls() {
     <button
       type="button"
       onClick={handleCycle}
-      className="inline-flex h-12 w-12 items-center justify-center rounded-full border text-[var(--foreground)] transition hover:scale-105 hover:shadow-lg"
-      style={{
-        backgroundColor: "var(--card)",
-        borderColor: "var(--border)",
-      }}
+      className="control-pill"
       aria-label={`Cycle theme (current: ${currentLabel})`}
       title={`Switch to ${nextLabel}`}
     >
