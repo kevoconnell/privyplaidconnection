@@ -10,62 +10,26 @@ import {
   Provider as JotaiProvider,
   createStore,
   useAtom,
-  useAtomValue,
   useSetAtom,
 } from "jotai";
 import {
-  Products,
   type LinkTokenCreateRequest,
   type LinkTokenCreateResponse,
 } from "plaid";
-
 import { plaidStatusAtom, plaidUserAtom } from "@/store/plaid";
-import { DEFAULT_COUNTRY_CODES, DEFAULT_LANGUAGE } from "@/utils/plaid";
-import { themeModeAtom, type ThemeMode } from "@/store/common";
+import {
+  DEFAULT_COUNTRY_CODES,
+  DEFAULT_LANGUAGE,
+  DEFAULT_PRODUCTS,
+} from "@/utils/plaid";
 
+import { useResolvedTheme } from "@/hooks/useResolvedTheme";
 const jotaiStore = createStore();
 
 interface PlaidLinkProviderProps {
   children: React.ReactNode;
   language?: LinkTokenCreateRequest["language"];
   countryCodes?: LinkTokenCreateRequest["country_codes"];
-}
-
-type ResolvedTheme = "dark" | "light";
-
-function getSystemTheme(): ResolvedTheme {
-  if (typeof window === "undefined") {
-    return "dark";
-  }
-
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
-}
-
-//note: this is a hacky way to get the system theme for privy without using a global state
-function useResolvedTheme(): ResolvedTheme {
-  const mode = useAtomValue(themeModeAtom);
-  const [systemTheme, setSystemTheme] = useState<ResolvedTheme>(getSystemTheme);
-
-  useEffect(() => {
-    if (mode !== "system") {
-      return;
-    }
-
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-
-    setSystemTheme(media.matches ? "dark" : "light");
-  }, [mode]);
-
-  const resolvedTheme: ResolvedTheme =
-    mode === "system" ? systemTheme : (mode as Exclude<ThemeMode, "system">);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
-  }, [resolvedTheme]);
-
-  return resolvedTheme;
 }
 
 function PlaidLinkProvider({
@@ -189,6 +153,7 @@ function PlaidLinkProvider({
     }
 
     const request: LinkTokenCreateRequest = {
+      //todo: this should be configurable via dashboard, also have prefilling existing user data
       client_name: "Privy Plaid Link",
       language,
       country_codes: countryCodes,
@@ -196,7 +161,7 @@ function PlaidLinkProvider({
         client_user_id: user?.id ?? "anonymous",
       },
       //todo: in the future this should be configurable via dashboard
-      products: [Products.Auth],
+      products: DEFAULT_PRODUCTS,
     };
 
     void fetchLinkToken(request);
@@ -255,6 +220,7 @@ function PrivyPlaidProviderWithTheme({
   );
 }
 
+//wrapping jotai provider so we can access theme
 export default function Providers(props: ProvidersProps) {
   return (
     <JotaiProvider store={jotaiStore}>
