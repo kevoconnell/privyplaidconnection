@@ -10,6 +10,7 @@ import {
   Provider as JotaiProvider,
   createStore,
   useAtom,
+  useAtomValue,
   useSetAtom,
 } from "jotai";
 import {
@@ -20,6 +21,7 @@ import {
 
 import { plaidStatusAtom, plaidUserAtom } from "@/store/plaid";
 import { DEFAULT_COUNTRY_CODES, DEFAULT_LANGUAGE } from "@/utils/plaid";
+import { themeModeAtom, type ThemeMode } from "@/store/common";
 
 const jotaiStore = createStore();
 
@@ -27,6 +29,43 @@ interface PlaidLinkProviderProps {
   children: React.ReactNode;
   language?: LinkTokenCreateRequest["language"];
   countryCodes?: LinkTokenCreateRequest["country_codes"];
+}
+
+type ResolvedTheme = "dark" | "light";
+
+function getSystemTheme(): ResolvedTheme {
+  if (typeof window === "undefined") {
+    return "dark";
+  }
+
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+}
+
+//note: this is a hacky way to get the system theme for privy without using a global state
+function useResolvedTheme(): ResolvedTheme {
+  const mode = useAtomValue(themeModeAtom);
+  const [systemTheme, setSystemTheme] = useState<ResolvedTheme>(getSystemTheme);
+
+  useEffect(() => {
+    if (mode !== "system") {
+      return;
+    }
+
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+
+    setSystemTheme(media.matches ? "dark" : "light");
+  }, [mode]);
+
+  const resolvedTheme: ResolvedTheme =
+    mode === "system" ? systemTheme : (mode as Exclude<ThemeMode, "system">);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
+  }, [resolvedTheme]);
+
+  return resolvedTheme;
 }
 
 function PlaidLinkProvider({
@@ -179,38 +218,47 @@ interface ProvidersProps {
   plaidCountryCodes?: LinkTokenCreateRequest["country_codes"];
 }
 
-export default function Providers({
+function PrivyPlaidProviderWithTheme({
   children,
   plaidLanguage,
   plaidCountryCodes,
 }: ProvidersProps) {
+  const resolvedTheme = useResolvedTheme();
+
+  return (
+    <PrivyProvider
+      appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID!}
+      clientId={process.env.NEXT_PUBLIC_PRIVY_CLIENT_ID!}
+      config={{
+        embeddedWallets: {
+          ethereum: {
+            createOnLogin: "users-without-wallets",
+          },
+          solana: {
+            createOnLogin: "users-without-wallets",
+          },
+        },
+        appearance: {
+          accentColor: "#5b50ff",
+          walletChainType: "ethereum-and-solana",
+          theme: resolvedTheme,
+        },
+      }}
+    >
+      <PlaidLinkProvider
+        language={plaidLanguage}
+        countryCodes={plaidCountryCodes}
+      >
+        {children}
+      </PlaidLinkProvider>
+    </PrivyProvider>
+  );
+}
+
+export default function Providers(props: ProvidersProps) {
   return (
     <JotaiProvider store={jotaiStore}>
-      <PrivyProvider
-        appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID!}
-        clientId={process.env.NEXT_PUBLIC_PRIVY_CLIENT_ID!}
-        config={{
-          embeddedWallets: {
-            ethereum: {
-              createOnLogin: "users-without-wallets",
-            },
-            solana: {
-              createOnLogin: "users-without-wallets",
-            },
-          },
-          appearance: {
-            accentColor: "#5b50ff",
-            walletChainType: "ethereum-and-solana",
-          },
-        }}
-      >
-        <PlaidLinkProvider
-          language={plaidLanguage}
-          countryCodes={plaidCountryCodes}
-        >
-          {children}
-        </PlaidLinkProvider>
-      </PrivyProvider>
+      <PrivyPlaidProviderWithTheme {...props} />
     </JotaiProvider>
   );
 }

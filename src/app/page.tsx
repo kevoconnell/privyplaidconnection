@@ -159,7 +159,7 @@ export default function PlaidLinkPage() {
 
             <div
               key={`step-${step}`}
-              className="grid gap-6 lg:grid-cols-5 lg:items-stretch"
+              className="flex flex-col gap-6 md:flex-row lg:items-stretch"
             >
               <StepCard
                 stepLabel={stepLabel}

@@ -26,10 +26,10 @@ export function ConnectionStatusCard({
     : "—";
 
   return (
-    <GlassCard className="flex h-full min-h-[18rem] flex-col gap-4 p-4 text-secondary lg:col-span-2">
+    <GlassCard className="flex h-full   flex-col gap-4 p-4 text-secondary lg:col-span-2">
       <header>
         <h3 className="text-lg font-semibold text-primary">
-          Connection status
+          Plaid Connection status
         </h3>
         <p className="text-sm text-secondary">
           Inspect the data captured when Plaid Link completes.

@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 
 import { GlassCard } from "./glass-card";
+import { usePrivy } from "@privy-io/react-auth";
+import { usePrivyWithPlaid } from "@/hooks/usePrivyWithPlaid";
 
 interface StepAction {
   label: string;
@@ -27,8 +29,9 @@ export function StepCard({
   primaryAction,
   secondaryAction,
 }: StepCardProps) {
+  const { user } = usePrivyWithPlaid();
   return (
-    <GlassCard className="flex h-full min-h-[18rem] flex-col gap-4 p-5 text-left text-secondary lg:col-span-3">
+    <GlassCard className="flex h-full  flex-1 flex-col gap-4 p-5 text-left text-secondary lg:col-span-3">
       <div className="flex flex-wrap items-center gap-3">
         <span className="tag">{stepLabel}</span>
         <span className="text-sm text-secondary">{stepSubtitle}</span>

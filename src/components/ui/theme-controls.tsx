@@ -6,69 +6,15 @@ import {
   SunIcon,
 } from "@heroicons/react/24/outline";
 import { useAtom } from "jotai";
-import { useEffect, useState } from "react";
 
 import { themeModeAtom, type ThemeMode } from "@/store/common/atoms";
 
 const MODE_SEQUENCE: ThemeMode[] = ["dark", "light", "system"];
 
-const THEMES = ["dark", "light"] as const;
-type Theme = (typeof THEMES)[number];
-
-function getSystemTheme(): Theme {
-  if (typeof window === "undefined") {
-    return "dark";
-  }
-
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
-}
-
-function applyTheme(theme: Theme) {
-  if (typeof document === "undefined") {
-    return;
-  }
-
-  document.documentElement.classList.toggle("dark", theme === "dark");
-}
-
 export function ThemeControls() {
   const [mode, setMode] = useAtom(themeModeAtom);
 
-  useEffect(() => {
-    const nextTheme: Theme = mode === "system" ? getSystemTheme() : mode;
-    applyTheme(nextTheme);
-  }, [mode]);
-
-  useEffect(() => {
-    if (mode !== "system") {
-      return;
-    }
-
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-
-    const handleChange = (event: MediaQueryListEvent) => {
-      const nextTheme: Theme = event.matches ? "dark" : "light";
-      applyTheme(nextTheme);
-    };
-
-    if (media.addEventListener) {
-      media.addEventListener("change", handleChange);
-    } else {
-      media.addListener(handleChange);
-    }
-
-    return () => {
-      if (media.removeEventListener) {
-        media.removeEventListener("change", handleChange);
-      } else {
-        media.removeListener(handleChange);
-      }
-    };
-  }, [mode]);
-
-  const handleCycle = () => {
+  const handleThemeCycle = () => {
     const currentIndex = MODE_SEQUENCE.indexOf(mode);
     const nextMode = MODE_SEQUENCE[(currentIndex + 1) % MODE_SEQUENCE.length];
     setMode(nextMode);
@@ -94,7 +40,7 @@ export function ThemeControls() {
   return (
     <button
       type="button"
-      onClick={handleCycle}
+      onClick={handleThemeCycle}
       className="control-pill"
       aria-label={`Cycle theme (current: ${currentLabel})`}
       title={`Switch to ${nextLabel}`}
