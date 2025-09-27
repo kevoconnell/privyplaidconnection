@@ -6,7 +6,7 @@ import { useAtomValue } from "jotai";
 
 import { FloatingControls } from "@/components/ui/floating-controls";
 import { usePrivyWithPlaid } from "@/hooks/usePrivyWithPlaid";
-import { plaidStatusAtom, plaidUserAtom } from "@/store/plaid";
+import { plaidStatusAtom } from "@/store/plaid";
 import { ConnectionStatusCard } from "@/components/ui/connection-status-card";
 import { StepCard } from "@/components/ui/step-card";
 import { SignInButton } from "@/components/sign-in-button";
@@ -14,21 +14,22 @@ import { SignInButton } from "@/components/sign-in-button";
 export default function PlaidLinkPage() {
   const router = useRouter();
 
-  const { linkPlaid, unlinkPlaid, authenticated, ready, login } =
+  const { linkPlaid, unlinkPlaid, authenticated, ready, login, user } =
     usePrivyWithPlaid();
-  const plaidUser = useAtomValue(plaidUserAtom);
+  const plaidUser = user?.plaid;
+
   const plaidStatus = useAtomValue(plaidStatusAtom);
   const step = useMemo(() => {
     if (!authenticated) {
       return 1;
     }
 
-    if (!plaidUser?.publicToken) {
+    if (!plaidUser?.connections || !plaidUser?.connections.length) {
       return 2;
     }
 
     return 3;
-  }, [authenticated, plaidUser?.publicToken]);
+  }, [authenticated, plaidUser]);
 
   // TODO: Move this to a separate hook with a atom to track current step
   const {
@@ -169,7 +170,11 @@ export default function PlaidLinkPage() {
                 supplementalNote={supplementalNote || undefined}
                 primaryAction={
                   step === 3
-                    ? undefined
+                    ? {
+                        label: "View Transactions",
+                        onClick: () => router.push("/transactions"),
+                        disabled: false,
+                      }
                     : {
                         label: primaryButtonLabel,
                         onClick: handlePrimaryCta,
@@ -177,9 +182,9 @@ export default function PlaidLinkPage() {
                       }
                 }
                 secondaryAction={
-                  step === 3 && plaidUser?.publicToken
+                  step === 3 && plaidUser?.connections.length
                     ? {
-                        label: "Unlink current Plaid connection",
+                        label: "Unlink Plaid",
                         onClick: unlinkPlaid,
                       }
                     : undefined
@@ -188,13 +193,12 @@ export default function PlaidLinkPage() {
 
               <ConnectionStatusCard
                 plaidStatus={plaidStatus}
-                plaidUser={plaidUser}
+                plaidUser={plaidUser ?? null}
               />
             </div>
           </div>
         </section>
       </main>
-      <FloatingControls />
     </>
   );
 }

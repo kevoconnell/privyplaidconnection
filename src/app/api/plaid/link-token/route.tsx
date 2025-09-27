@@ -1,5 +1,7 @@
+import privy from "@/initalizers/privy";
 import { PLAID_BASE_URLS } from "@/utils/plaid";
-import { PrivyClient } from "@privy-io/server-auth";
+import { authenticatePrivyUser } from "@/utils/privy";
+
 import { cookies, headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -50,24 +52,9 @@ export async function POST(request: NextRequest) {
   const clientId = process.env.PLAID_CLIENT_ID;
   const secret = process.env.PLAID_SECRET;
 
-  const idToken = request.headers.get("privy-id-token");
+  const privyUser = await authenticatePrivyUser(request);
 
-  if (!idToken) {
-    return NextResponse.json(
-      { error: "Missing Privy ID token" },
-      { status: 401 }
-    );
-  }
-
-  const privy = new PrivyClient(
-    process.env.NEXT_PUBLIC_PRIVY_APP_ID!,
-    process.env.PRIVY_APP_SECRET!
-  );
-
-  // Parse and verify the token
-  const user = await privy.getUser({ idToken: idToken });
-
-  if (!user) {
+  if (!privyUser) {
     return NextResponse.json(
       { error: "Invalid Privy ID token" },
       { status: 401 }

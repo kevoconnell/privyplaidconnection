@@ -11,18 +11,15 @@ export function ConnectionStatusCard({
   plaidStatus,
   plaidUser,
 }: ConnectionStatusCardProps) {
-  const metadata = plaidUser?.metadata ?? null;
-  const accounts = metadata?.accounts ?? [];
-  const institution = metadata?.institution ?? null;
+  const connections = plaidUser?.connections ?? [];
+  const hasConnections = connections.length > 0;
 
   const linkTokenPreview = plaidUser?.linkToken
     ? `${plaidUser.linkToken.slice(0, 10)}...${plaidUser.linkToken.slice(-10)}`
     : "—";
 
-  const publicTokenPreview = plaidUser?.publicToken
-    ? `${plaidUser.publicToken.slice(0, 10)}...${plaidUser.publicToken.slice(
-        -10
-      )}`
+  const linkTokenExpiration = plaidUser?.linkTokenExpiration
+    ? new Date(plaidUser.linkTokenExpiration).toLocaleString()
     : "—";
 
   return (
@@ -56,59 +53,63 @@ export function ConnectionStatusCard({
 
         <div className="rounded-2xl border px-3 py-3 surface-panel">
           <p className="text-xs uppercase tracking-widest text-secondary">
-            Public token
+            Link Token Expiration
           </p>
-          <p className="break-all text-sm font-medium text-primary">
-            {publicTokenPreview}
+          <p className="text-sm font-medium text-primary">
+            {linkTokenExpiration}
           </p>
         </div>
 
         <div className="rounded-2xl border px-3 py-3 surface-panel">
           <p className="text-xs uppercase tracking-widest text-secondary">
-            Institution
+            User ID
           </p>
-          {institution ? (
-            <p className="text-sm font-medium text-primary">
-              {institution.name}
-              <span className="ml-2 text-xs text-secondary">
-                ({institution.institution_id})
-              </span>
-            </p>
-          ) : (
-            <p className="text-sm text-secondary">Not connected</p>
-          )}
+          <p className="text-sm font-medium text-primary">
+            {plaidUser?.id ?? "—"}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border px-3 py-3 surface-panel">
+          <p className="text-xs uppercase tracking-widest text-secondary">
+            Email
+          </p>
+          <p className="text-sm font-medium text-primary">
+            {plaidUser?.email ?? "—"}
+          </p>
         </div>
       </div>
 
-      {accounts.length > 0 ? (
+      {hasConnections ? (
         <div className="space-y-2.5">
           <p className="text-xs uppercase tracking-widest text-secondary">
-            Accounts
+            Plaid Connections
           </p>
           <div className="max-h-56 overflow-y-auto pr-1">
             <ul className="space-y-2 text-sm text-secondary">
-              {accounts.map((account) => (
+              {connections.map((connection) => (
                 <li
-                  key={account.id}
+                  key={connection.id}
                   className="rounded-xl border px-3 py-3 surface-panel"
                 >
                   <p className="font-medium text-primary">
-                    {account.name ?? "Untitled account"}
-                    {account.mask ? (
-                      <span className="ml-2 text-xs text-secondary">
-                        •••• {account.mask}
-                      </span>
-                    ) : null}
+                    {connection.institutionName ?? "Unknown Institution"}
+                    <span className="ml-2 text-xs text-secondary">
+                      ({connection.institutionId})
+                    </span>
                   </p>
                   <p className="text-xs text-secondary">
-                    {account.type ?? "Unknown"}
-                    {account.subtype ? ` • ${account.subtype}` : ""}
+                    Item ID: {connection.plaidItemId}
                   </p>
-                  {account.verification_status ? (
+                  <p className="text-xs text-secondary">
+                    Created:{" "}
+                    {new Date(connection.createdAt).toLocaleDateString()}
+                  </p>
+                  {connection.updatedAt !== connection.createdAt && (
                     <p className="text-xs text-secondary">
-                      Verification: {account.verification_status}
+                      Updated:{" "}
+                      {new Date(connection.updatedAt).toLocaleDateString()}
                     </p>
-                  ) : null}
+                  )}
                 </li>
               ))}
             </ul>
@@ -116,7 +117,8 @@ export function ConnectionStatusCard({
         </div>
       ) : (
         <div className="rounded-2xl border px-3 py-3 text-sm text-secondary surface-panel">
-          Accounts will appear here after completing Plaid Link.
+          No Plaid connections found. Complete Plaid Link to connect your
+          accounts.
         </div>
       )}
     </GlassCard>

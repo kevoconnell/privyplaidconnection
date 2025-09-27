@@ -44,11 +44,11 @@ function PlaidLinkProvider({
   const { identityToken } = useIdentityToken();
 
   const hasValidLinkToken = useMemo(() => {
-    if (!plaidUser?.linkToken || !plaidUser.expiration) {
+    if (!plaidUser?.linkToken || !plaidUser.linkTokenExpiration) {
       return false;
     }
 
-    const expiresAt = Date.parse(plaidUser.expiration);
+    const expiresAt = Date.parse(plaidUser.linkTokenExpiration);
     return !Number.isNaN(expiresAt) && expiresAt > Date.now();
   }, [plaidUser]);
 
@@ -119,12 +119,16 @@ function PlaidLinkProvider({
         );
       }
 
-      setPlaidUser((previous) => ({
-        ...(previous ?? {}),
-        linkToken: data.link_token,
-        expiration:
-          data.expiration ?? new Date(Date.now() + 5 * 60 * 1000).toISOString(),
-      }));
+      setPlaidUser((previous) => {
+        if (!previous) return null;
+        return {
+          ...previous,
+          linkToken: data.link_token,
+          linkTokenExpiration: new Date(
+            Date.now() + 5 * 60 * 1000
+          ).toISOString(),
+        };
+      });
 
       setIsFetchingLinkToken(false);
       setPlaidStatus((previous) => ({

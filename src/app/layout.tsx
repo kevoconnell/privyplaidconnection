@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import Providers from "@/providers/providers";
+import { FloatingControls } from "@/components/ui/floating-controls";
 
 const inter = localFont({
   src: "../../public/fonts/InterVariable.ttf",
@@ -28,7 +29,12 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${inter.variable} ${abcFavorit.variable} antialiased`}>
-        <Providers>{children}</Providers>
+        <Providers>
+          <>
+            {children}
+            <FloatingControls />
+          </>
+        </Providers>
       </body>
     </html>
   );

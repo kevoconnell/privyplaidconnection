@@ -2,16 +2,14 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAtomValue } from "jotai";
-
-import { plaidUserAtom } from "@/store/plaid";
+import { usePrivyWithPlaid } from "@/hooks/usePrivyWithPlaid";
 
 export default function PlaidRedirectPage() {
   const router = useRouter();
-  const plaidUser = useAtomValue(plaidUserAtom);
+  const { user } = usePrivyWithPlaid();
 
   useEffect(() => {
-    if (plaidUser?.publicToken) {
+    if (user?.plaid?.connections) {
       const timeout = setTimeout(() => {
         void router.replace("/");
       }, 100);
@@ -20,7 +18,7 @@ export default function PlaidRedirectPage() {
     }
 
     router.replace("/");
-  }, [plaidUser?.publicToken, router]);
+  }, [user?.plaid?.connections, router]);
 
   return null;
 }

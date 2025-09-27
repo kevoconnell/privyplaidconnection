@@ -1,4 +1,6 @@
 import { CountryCode, LinkTokenCreateRequest, Products } from "plaid";
+import type { plaidConnections } from "@/initalizers/db/drizzle/schema";
+import { SanitizedPlaidConnection } from "@/types/plaid";
 
 export const PLAID_BASE_URLS = {
   sandbox: "https://sandbox.plaid.com",
@@ -13,4 +15,18 @@ export const DEFAULT_COUNTRY_CODES: LinkTokenCreateRequest["country_codes"] = [
 
 export const DEFAULT_PRODUCTS: LinkTokenCreateRequest["products"] = [
   Products.Auth,
+  Products.Transactions,
 ];
+
+export function sanitizePlaidConnection(
+  connection: typeof plaidConnections.$inferSelect
+): SanitizedPlaidConnection {
+  const { accessToken, ...rest } = connection;
+  return rest;
+}
+
+export function sanitizePlaidConnections(
+  connections: (typeof plaidConnections.$inferSelect)[]
+): SanitizedPlaidConnection[] {
+  return connections.map(sanitizePlaidConnection);
+}
