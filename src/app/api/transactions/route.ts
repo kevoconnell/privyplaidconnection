@@ -83,8 +83,6 @@ export async function GET(request: NextRequest) {
           };
         }
         acc[category].count += 1;
-        // For spending insights, we want to show expenses as positive and income as negative
-        // But for category summaries, we typically want to show spending amounts
         acc[category].totalAmount += tx.amount;
         acc[category].transactions.push(tx);
         return acc;
@@ -95,9 +93,16 @@ export async function GET(request: NextRequest) {
       >
     );
 
+    const filteredCategories = Object.fromEntries(
+      Object.entries(categorySummary).filter(
+        ([_, category]: [string, { totalAmount: number }]) =>
+          category.totalAmount > 0
+      )
+    );
+
     return NextResponse.json({
       transactions: categorizedTransactions,
-      categorySummary,
+      categorySummary: filteredCategories,
       totalCount: categorizedTransactions.length,
       dateRange: {
         from: categorizedTransactions[categorizedTransactions.length - 1]?.date,

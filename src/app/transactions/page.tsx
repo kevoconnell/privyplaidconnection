@@ -1,25 +1,51 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTransactions } from "@/hooks/useTransactions";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { SignInButton } from "@/components/sign-in-button";
-import { PlaidPieChart } from "@/components/ui/pie-chart";
-
+import { PlaidPieChart } from "@/components/ui/plaid-pie-chart";
+import { ProofCard } from "@/components/sections/proof-card";
 import {
-  ArrowLeftIcon,
-  ArrowPathIcon,
-  ArrowTrendingUpIcon,
-  ArrowTrendingDownIcon,
-} from "@heroicons/react/24/outline";
+  type CryptoProof,
+  signAttestation,
+  type AttestationMessage,
+  verifyAttestation,
+} from "@/utils/crypto-proof";
+
 import { usePrivyWithPlaid } from "@/hooks/usePrivyWithPlaid";
+import Header from "@/components/ui/header";
+import { useEffect } from "react";
+import { useSignTypedData } from "@privy-io/react-auth";
 
 export default function TransactionsPage() {
   const router = useRouter();
-  const { data, loading, refetch } = useTransactions();
-  const { user } = usePrivyWithPlaid();
+  const { data } = useTransactions();
+  const { user, ready } = usePrivyWithPlaid();
+  const { signTypedData } = useSignTypedData();
+
+  const [selectedCategory, setSelectedCategory] = useState(
+    data?.categorySummary
+      ? Object.keys(data.categorySummary)[0]
+      : "Food and Drink"
+  );
+  const [threshold, setThreshold] = useState(10);
+
+  useEffect(() => {
+    if (data?.categorySummary) {
+      setSelectedCategory(Object.keys(data.categorySummary)[0]);
+    }
+  }, [data]);
+
+  const [generatedProof, setGeneratedProof] = useState<CryptoProof | null>(
+    null
+  );
+  const [proofLoading, setProofLoading] = useState(false);
+  const [verificationResult, setVerificationResult] = useState<{
+    isValid: boolean;
+    signatureValid: boolean;
+    categorySpending: number;
+    thresholdMet: boolean;
+  } | null>(null);
 
   // Calculate insights
   const insights = useMemo(() => {
@@ -52,14 +78,12 @@ export default function TransactionsPage() {
 
     // Calculate category entries for insights
     const categoryEntries = Object.entries(data.categorySummary || {}).sort(
-      (a, b) => Math.abs(b[1].totalAmount) - Math.abs(a[1].totalAmount)
+      (a, b) => b[1].totalAmount - a[1].totalAmount
     );
 
     // Top spending category
     const topCategory = categoryEntries[0];
-    const topCategorySpending = topCategory
-      ? Math.abs(topCategory[1].totalAmount)
-      : 0;
+    const topCategorySpending = topCategory ? topCategory[1].totalAmount : 0;
     const topCategoryPercentage =
       totalExpenses > 0
         ? ((topCategorySpending / totalExpenses) * 100).toFixed(1)
@@ -115,183 +139,234 @@ export default function TransactionsPage() {
     };
   }, [data]);
 
-  //if no user, or no plaid connections
-  if (!user || !user.plaid?.connections) {
-    //redirect to home page
+  // Generate category spending proof (client-side)
+  const generateSpendingProof = async () => {
+    if (!user?.wallet?.address) {
+      alert("Please connect your wallet first");
+      return;
+    }
+
+    if (!data?.categorySummary) {
+      alert("No spending data available");
+      return;
+    }
+
+    // Find the selected category spending
+    const categoryData = data.categorySummary[selectedCategory];
+    if (!categoryData) {
+      alert(`No data found for category: ${selectedCategory}`);
+      return;
+    }
+
+    const categorySpending = categoryData.totalAmount;
+
+    setProofLoading(true);
+    try {
+      const thresholdInCents = threshold * 100;
+      // Generate attestation message
+      const message = await signAttestation(
+        data.transactions,
+        selectedCategory,
+        thresholdInCents
+      );
+
+      // Sign the attestation with Privy
+      const { signature } = await signTypedData({
+        domain: {
+          name: "PlaidAttestation",
+          version: "1",
+        },
+        types: {
+          Attestation: [
+            { name: "schema", type: "string" },
+            { name: "aud", type: "string" },
+            { name: "nonce", type: "bytes32" },
+            { name: "issuedAt", type: "uint64" },
+            { name: "expiresAt", type: "uint64" },
+            { name: "plaidRoot", type: "bytes32" },
+            { name: "valueCents", type: "uint256" },
+            { name: "predicate", type: "string" },
+          ],
+        },
+        primaryType: "Attestation",
+        message: message as any,
+      });
+
+      setGeneratedProof({
+        attestation: message,
+        signature: typeof signature === "string" ? signature : signature,
+        walletAddress: user.wallet.address,
+        commitment: message.plaidRoot,
+        publicKey: user.wallet.address,
+        range: [thresholdInCents / 100, categorySpending] as [number, number],
+        value: categorySpending,
+        message: `Spending proof for ${selectedCategory}`,
+      });
+      setVerificationResult(null);
+    } catch (error) {
+      console.error("Failed to generate proof:", error);
+
+      // Check if the error is due to user cancellation
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      if (
+        errorMessage.includes("User rejected") ||
+        errorMessage.includes("User denied") ||
+        errorMessage.includes("cancelled") ||
+        errorMessage.includes("canceled") ||
+        errorMessage.includes("rejected")
+      ) {
+        // User cancelled the signing - don't show error, just log it
+        console.log("User cancelled wallet signing");
+      } else {
+        // Show error for other types of failures
+        alert("Failed to generate proof");
+      }
+    } finally {
+      setProofLoading(false);
+    }
+  };
+
+  const verifyProof = async () => {
+    if (!generatedProof || !data?.categorySummary || !data?.transactions)
+      return;
+
+    try {
+      const result = await verifyAttestation({
+        address: generatedProof.walletAddress as `0x${string}`,
+        signature: generatedProof.signature as `0x${string}`,
+        message: generatedProof.attestation as AttestationMessage,
+        transactions: data.transactions,
+        category: selectedCategory,
+      });
+
+      const categoryData = data.categorySummary[selectedCategory];
+      setVerificationResult({
+        isValid: result.ok,
+        signatureValid: result.ok,
+        categorySpending: categoryData?.totalAmount || 0,
+        thresholdMet: (categoryData?.totalAmount || 0) >= threshold,
+      });
+    } catch (error) {
+      console.error("Failed to verify proof:", error);
+      alert("Failed to verify proof");
+    }
+  };
+
+  if (ready && (!user || !user.plaid?.connections)) {
     router.push("/");
     return null;
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen text-foreground">
-        <header className="mx-auto flex w-full max-w-4xl md:max-w-5xl items-center justify-between px-3 py-4 sm:px-4 sm:py-5 md:py-6">
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.back()}
-              className="flex items-center space-x-2 text-secondary hover:text-primary"
-            >
-              <ArrowLeftIcon className="w-4 h-4" />
-              <span>Back</span>
-            </Button>
-            <h1 className="text-xl font-semibold text-primary">
-              Privy + Plaid Financial Insights
-            </h1>
-          </div>
-          <SignInButton />
-        </header>
-        <div className="mx-auto w-full max-w-5xl px-4 pb-16 pt-10">
-          <div className="animate-pulse">
-            <div className="h-4 bg-muted rounded w-1/4 mb-4"></div>
-            <div className="space-y-4">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-32 bg-muted rounded"></div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen text-foreground">
-      <header className="mx-auto flex w-full max-w-4xl md:max-w-5xl items-center justify-between px-3 py-4 sm:px-4 sm:py-5 md:py-6">
-        <div className="flex items-center space-x-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push("/")}
-            className="flex items-center space-x-2 text-secondary hover:text-primary"
-          >
-            <ArrowLeftIcon className="w-4 h-4" />
-            <span>Home</span>
-          </Button>
-        </div>
-        <div className="flex items-center space-x-4">
-          <SignInButton />
-        </div>
-      </header>
-
-      <section className="flex-1">
-        <div className="mx-auto w-full max-w-5xl px-4 pb-16 pt-10 justify-center">
-          <div className="mb-10 text-left">
-            <h1 className="text-3xl font-semibold leading-tight text-primary md:text-4xl">
-              Your Financial Insights with{" "}
-              <span className="text-privy">Privy</span> + Plaid
-            </h1>
-          </div>
-
-          {/* Spending Analysis */}
-          <div className="mb-8">
-            <div className="flex flex-col gap-6 md:flex-row lg:items-stretch">
-              <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
-                {/* Pie Chart */}
-                <PlaidPieChart
-                  title="Spending by Category"
-                  description="Breakdown of your expenses"
-                  data={
-                    data?.categorySummary
-                      ? Object.entries(data.categorySummary)
-                          .filter(([_, summary]) => summary.totalAmount > 0)
-                          .sort(
-                            ([_, a], [__, b]) => b.totalAmount - a.totalAmount
-                          )
-                          .slice(0, 8)
-                          .map(([category, summary], index) => ({
-                            category,
-                            amount: summary.totalAmount,
-                            fill: `hsl(${(index * 45) % 360}, 70%, 50%)`,
-                            label: category,
-                            name: category,
-                          }))
-                      : []
-                  }
-                  dataKey="amount"
-                  labelKey="label"
-                  showInnerRadius={true}
-                  innerRadius={40}
-                  strokeWidth={8}
-                  footerContent={
-                    <>
-                      <div className="text-center">
-                        <p className="text-secondary">Total Spending</p>
-                        <p className="text-2xl font-bold text-primary">
-                          ${insights.totalExpenses.toFixed(2)}
-                        </p>
-                      </div>
-                      <div className="text-center text-sm text-secondary">
-                        {data?.categorySummary
-                          ? Object.keys(data.categorySummary).length
-                          : 0}{" "}
-                        categories
-                      </div>
-                    </>
-                  }
-                  className="w-full max-w-md mx-auto"
-                />
-
-                {/* Flow Details */}
-                <div className="flex-1 space-y-4">
-                  <div className="rounded-3xl border backdrop-blur-xl surface-card p-5">
-                    <div className="flex items-center space-x-3">
-                      <ArrowTrendingUpIcon className="w-8 h-8 text-green-600" />
-                      <div>
-                        <p className="text-sm font-medium text-secondary">
-                          Money In
-                        </p>
-                        <p className="text-2xl font-bold text-green-600">
-                          ${insights.totalIncome.toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
+    <div className="min-h-screen text-foreground px-10">
+      <Header />
+      {data ? (
+        <section className="flex-1">
+          <div className="mx-auto w-full pb-16 pt-10 justify-center">
+            {/* Main Content Grid */}
+            <div className="mb-5">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+                {/* Spending Analysis */}
+                <div className="flex flex-col">
+                  <div className="mb-4">
+                    <h2 className="text-2xl font-semibold leading-tight text-primary mb-2">
+                      Real-Time Financial Insights
+                    </h2>
+                    <p className="text-base leading-7 text-secondary">
+                      Access live transaction data and spending analytics from
+                      connected bank accounts. Perfect for building financial
+                      dashboards, expense tracking apps, or automated budgeting
+                      tools.
+                    </p>
                   </div>
 
-                  <div className="rounded-3xl border backdrop-blur-xl surface-card p-5">
-                    <div className="flex items-center space-x-3">
-                      <ArrowTrendingDownIcon className="w-8 h-8 text-red-600" />
-                      <div>
-                        <p className="text-sm font-medium text-secondary">
-                          Money Out
-                        </p>
-                        <p className="text-2xl font-bold text-red-600">
-                          ${insights.totalExpenses.toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
+                  <div className="flex-1">
+                    <PlaidPieChart
+                      title="Your Bank account spending by Category"
+                      description="Breakdown of your expenses"
+                      data={
+                        data?.categorySummary
+                          ? Object.entries(data.categorySummary)
+                              .sort(
+                                ([, a], [, b]) => b.totalAmount - a.totalAmount
+                              )
+                              .slice(0, 8)
+                              .map(([category, summary], index) => ({
+                                category,
+                                amount: summary.totalAmount,
+                                fill: `hsl(${(index * 45) % 360}, 70%, 50%)`,
+                                label: category,
+                                name: category,
+                              }))
+                          : []
+                      }
+                      dataKey="amount"
+                      labelKey="label"
+                      showInnerRadius={true}
+                      innerRadius={40}
+                      strokeWidth={10}
+                      footerContent={
+                        data?.categorySummary && (
+                          <>
+                            <div className="text-center">
+                              <p className="text-secondary">Total Spending</p>
+                              <p className="text-2xl font-bold text-primary">
+                                ${insights.totalExpenses.toFixed(2)}
+                              </p>
+                            </div>
+                            <div className="text-center text-sm text-secondary">
+                              {data?.categorySummary
+                                ? Object.keys(data.categorySummary).length
+                                : 0}{" "}
+                              categories
+                            </div>
+                          </>
+                        )
+                      }
+                      className="w-full h-full"
+                    />
+                  </div>
+                </div>
+
+                {/* Proof Generation */}
+                <div className="flex flex-col">
+                  <div className="mb-4">
+                    <h2 className="text-2xl font-semibold leading-tight text-primary mb-2">
+                      Generate cryptographic proofs from real bank data.
+                    </h2>
+                    <p className="text-base leading-7 text-secondary">
+                      Perfect for building applications that need to verify
+                      financial behavior.
+                    </p>
                   </div>
 
-                  <div className="rounded-3xl border backdrop-blur-xl surface-card p-5">
-                    <div className="flex items-center space-x-3">
-                      {insights.netFlow >= 0 ? (
-                        <ArrowTrendingUpIcon className="w-8 h-8 text-green-600" />
-                      ) : (
-                        <ArrowTrendingDownIcon className="w-8 h-8 text-red-600" />
-                      )}
-                      <div>
-                        <p className="text-sm font-medium text-secondary">
-                          Net Flow
-                        </p>
-                        <p
-                          className={`text-2xl font-bold ${
-                            insights.netFlow >= 0
-                              ? "text-green-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          ${insights.netFlow.toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
+                  <div className="flex-1">
+                    <ProofCard
+                      selectedCategory={selectedCategory}
+                      setSelectedCategory={setSelectedCategory}
+                      threshold={threshold}
+                      setThreshold={setThreshold}
+                      data={data}
+                      generatedProof={generatedProof}
+                      proofLoading={proofLoading}
+                      verificationResult={verificationResult}
+                      generateSpendingProof={generateSpendingProof}
+                      verifyProof={verifyProof}
+                    />
                   </div>
                 </div>
               </div>
             </div>
           </div>
+        </section>
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="flex flex-col items-center space-y-3">
+            <div className="animate-spin rounded-full h-12 w-12 border-2 border-gray-300 border-t-primary"></div>
+          </div>
         </div>
-      </section>
+      )}
     </div>
   );
 }

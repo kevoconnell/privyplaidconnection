@@ -10,6 +10,7 @@ import { plaidStatusAtom } from "@/store/plaid";
 import { ConnectionStatusCard } from "@/components/ui/connection-status-card";
 import { StepCard } from "@/components/ui/step-card";
 import { SignInButton } from "@/components/sign-in-button";
+import Header from "@/components/ui/header";
 
 export default function PlaidLinkPage() {
   const router = useRouter();
@@ -139,15 +140,8 @@ export default function PlaidLinkPage() {
 
   return (
     <>
-      <main className="flex min-h-screen flex-col text-foreground">
-        <header className="mx-auto flex w-full max-w-4xl md:max-w-5xl items-center justify-between px-3 py-4 sm:px-4 sm:py-5 md:py-6">
-          <div className="flex items-center gap-2">
-            <span className="tag text-xs md:text-sm">
-              Plaid + Privy connector
-            </span>
-          </div>
-          <SignInButton />
-        </header>
+      <main className="flex min-h-screen flex-col px-10 text-foreground">
+        <Header />
 
         <section className="flex-1">
           <div className="mx-auto w-full max-w-5xl px-4 pb-16 pt-10">
