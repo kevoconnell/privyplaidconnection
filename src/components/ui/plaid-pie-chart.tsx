@@ -87,8 +87,7 @@ export function PlaidPieChart({
                             className="flex items-center space-x-2"
                           >
                             <div
-                              className="w-3 h-3 rounded-full"
-                              style={{ backgroundColor: color }}
+                              className={`w-3 h-3 rounded-full bg-[${color}]`}
                             />
                             <span>{label}</span>
                           </div>,
