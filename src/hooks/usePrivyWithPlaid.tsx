@@ -36,6 +36,12 @@ export function usePrivyWithPlaid(): UsePrivyWithPlaidReturn {
 
   const shouldOpenRef = useRef(false);
   const callbacksRef = useRef<LinkPlaidCallbacks>({});
+  const identityTokenRef = useRef(identityToken);
+
+  // Update the ref whenever identityToken changes
+  useEffect(() => {
+    identityTokenRef.current = identityToken;
+  }, [identityToken]);
 
   const hookConfig = {
     token: plaidUser?.linkToken ?? null,
@@ -46,7 +52,7 @@ export function usePrivyWithPlaid(): UsePrivyWithPlaidReturn {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "privy-id-token": identityToken ?? "",
+          "privy-id-token": identityTokenRef.current ?? "",
         },
         body: JSON.stringify({ publicToken, metadata }),
       });
@@ -91,7 +97,7 @@ export function usePrivyWithPlaid(): UsePrivyWithPlaidReturn {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "privy-id-token": identityToken ?? "",
+            "privy-id-token": identityTokenRef.current ?? "",
           },
         });
 
@@ -109,7 +115,7 @@ export function usePrivyWithPlaid(): UsePrivyWithPlaidReturn {
     };
 
     fetchUserData();
-  }, [privy.user, privy.authenticated]);
+  }, [privy.user, privy.authenticated, setPlaidUser]);
 
   useEffect(() => {
     return () => {
@@ -170,7 +176,7 @@ export function usePrivyWithPlaid(): UsePrivyWithPlaidReturn {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
-        "privy-id-token": identityToken ?? "",
+        "privy-id-token": identityTokenRef.current ?? "",
       },
     });
     if (!removeResponse.ok) {
@@ -189,7 +195,7 @@ export function usePrivyWithPlaid(): UsePrivyWithPlaidReturn {
       linking: false,
       error: null,
     }));
-  }, [setPlaidStatus, setPlaidUser, identityToken, privy]);
+  }, [setPlaidStatus, setPlaidUser, privy]);
 
   const privyUserWithPlaid = useMemo(() => {
     if (!privy.user) {
