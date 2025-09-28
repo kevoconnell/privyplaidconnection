@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import {
   PrivyProvider,
   useIdentityToken,
@@ -72,7 +72,15 @@ function PlaidLinkProvider({
       identityToken,
       hasValidLinkToken
     );
+    console.log("Early return conditions:", {
+      notReady: !ready,
+      notAuthenticated: !authenticated,
+      noIdentityToken: !identityToken,
+      hasValidToken: hasValidLinkToken,
+      plaidUser: plaidUser,
+    });
     if (!ready || !authenticated || !identityToken || hasValidLinkToken) {
+      console.log("Early return triggered - no network call will be made");
       linkTokenRequested.current = false;
       setPlaidStatus((previous) => ({
         ...previous,
@@ -86,6 +94,7 @@ function PlaidLinkProvider({
       fetchingLinkToken: true,
     }));
 
+    console.log("Making network call to /api/plaid/link-token");
     const response = await fetch("/api/plaid/link-token", {
       method: "POST",
       headers: {
@@ -151,7 +160,7 @@ function PlaidLinkProvider({
     };
 
     fetchLinkToken(request);
-  }, [authenticated, hasValidLinkToken, ready, identityToken]);
+  }, [authenticated, hasValidLinkToken, ready, identityToken, countryCodes, language, user?.id, fetchLinkToken]);
 
   return <>{children}</>;
 }
