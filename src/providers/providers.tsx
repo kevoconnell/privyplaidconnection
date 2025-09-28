@@ -40,9 +40,8 @@ function PlaidLinkProvider({
   const { ready, authenticated, user } = usePrivy();
 
   const [plaidUser, setPlaidUser] = useAtom(plaidUserAtom);
-  const setPlaidStatus = useSetAtom(plaidStatusAtom);
+  const [plaidStatus, setPlaidStatus] = useAtom(plaidStatusAtom);
   const { identityToken } = useIdentityToken();
-  const linkTokenRequested = useRef(false);
 
   const hasValidLinkToken = useMemo(() => {
     if (!plaidUser?.linkToken || !plaidUser.linkTokenExpiration) {
@@ -66,23 +65,7 @@ function PlaidLinkProvider({
 
   const fetchLinkToken = useCallback(
     async (request: LinkTokenCreateRequest) => {
-      console.log(
-        "fetchLinkToken",
-        ready,
-        authenticated,
-        identityToken,
-        hasValidLinkToken
-      );
-      console.log("Early return conditions:", {
-        notReady: !ready,
-        notAuthenticated: !authenticated,
-        noIdentityToken: !identityToken,
-        hasValidToken: hasValidLinkToken,
-        plaidUser: plaidUser,
-      });
       if (!ready || !authenticated || !identityToken || hasValidLinkToken) {
-        console.log("Early return triggered - no network call will be made");
-        linkTokenRequested.current = false;
         setPlaidStatus((previous) => ({
           ...previous,
           fetchingLinkToken: false,
@@ -95,7 +78,6 @@ function PlaidLinkProvider({
         fetchingLinkToken: true,
       }));
 
-      console.log("Making network call to /api/plaid/link-token");
       const response = await fetch("/api/plaid/link-token", {
         method: "POST",
         headers: {
@@ -156,34 +138,6 @@ function PlaidLinkProvider({
   );
 
   useEffect(() => {
-    console.log("useEffect triggered:", {
-      linkTokenRequested: linkTokenRequested.current,
-      ready,
-      authenticated,
-      hasValidLinkToken,
-      identityToken: !!identityToken,
-    });
-
-    // Reset the flag if conditions have changed and we should retry
-    if (
-      linkTokenRequested.current &&
-      ready &&
-      authenticated &&
-      identityToken &&
-      !hasValidLinkToken
-    ) {
-      console.log("Conditions met, resetting linkTokenRequested flag");
-      linkTokenRequested.current = false;
-    }
-
-    if (linkTokenRequested.current) {
-      console.log("linkTokenRequested is true, skipping");
-      return;
-    }
-
-    console.log("Setting linkTokenRequested to true");
-    linkTokenRequested.current = true;
-
     const request: LinkTokenCreateRequest = {
       //todo: this should be configurable via dashboard, also have prefilling existing user data
       client_name: "Privy Plaid Link",
@@ -195,6 +149,10 @@ function PlaidLinkProvider({
       //todo: in the future this should be configurable via dashboard
       products: DEFAULT_PRODUCTS,
     };
+
+    if (plaidStatus.fetchingLinkToken) {
+      return;
+    }
 
     fetchLinkToken(request);
   }, [
