@@ -144,20 +144,11 @@ function PlaidLinkProvider({
       identityToken,
       isFetchingLinkToken,
       ready,
-      setPlaidStatus,
-      setPlaidUser,
+      plaidUser?.connections?.length,
     ]
   );
 
   useEffect(() => {
-    if (!authenticated) {
-      return;
-    }
-
-    if (hasValidLinkToken) {
-      return;
-    }
-
     const request: LinkTokenCreateRequest = {
       //todo: this should be configurable via dashboard, also have prefilling existing user data
       client_name: "Privy Plaid Link",
@@ -170,15 +161,8 @@ function PlaidLinkProvider({
       products: DEFAULT_PRODUCTS,
     };
 
-    void fetchLinkToken(request);
-  }, [
-    authenticated,
-    countryCodes,
-    fetchLinkToken,
-    hasValidLinkToken,
-    language,
-    user?.id,
-  ]);
+    fetchLinkToken(request);
+  }, [fetchLinkToken]);
 
   return <>{children}</>;
 }
