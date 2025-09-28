@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   PrivyProvider,
   useIdentityToken,
@@ -38,10 +38,11 @@ function PlaidLinkProvider({
   countryCodes = DEFAULT_COUNTRY_CODES,
 }: PlaidLinkProviderProps) {
   const { ready, authenticated, user } = usePrivy();
-  const [isFetchingLinkToken, setIsFetchingLinkToken] = useState(false);
+
   const [plaidUser, setPlaidUser] = useAtom(plaidUserAtom);
   const setPlaidStatus = useSetAtom(plaidStatusAtom);
   const { identityToken } = useIdentityToken();
+  const linkTokenRequested = useRef(false);
 
   const hasValidLinkToken = useMemo(() => {
     if (!plaidUser?.linkToken || !plaidUser.linkTokenExpiration) {
@@ -63,103 +64,81 @@ function PlaidLinkProvider({
     }
   }, [authenticated, ready, setPlaidStatus, setPlaidUser]);
 
-  const fetchLinkToken = useCallback(
-    async (request: LinkTokenCreateRequest) => {
-      //if
-      if (
-        !ready ||
-        !authenticated ||
-        isFetchingLinkToken ||
-        !identityToken ||
-        hasValidLinkToken ||
-        (plaidUser?.connections?.length ?? 0) > 0
-      ) {
-        setPlaidStatus((previous) => ({
-          ...previous,
-          fetchingLinkToken: false,
-        }));
-        return;
-      }
-
-      setIsFetchingLinkToken(true);
-      setPlaidStatus((previous) => ({
-        ...previous,
-        fetchingLinkToken: true,
-      }));
-
-      const response = await fetch("/api/plaid/link-token", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "privy-id-token": identityToken ?? "",
-        },
-        body: JSON.stringify(request),
-      });
-
-      if (!response.ok) {
-        setIsFetchingLinkToken(false);
-        setPlaidStatus((previous) => ({
-          ...previous,
-          fetchingLinkToken: false,
-        }));
-        const message = await response.text().catch(() => "");
-        throw new Error(message || "Unable to create Plaid link token");
-      }
-
-      const data = (await response.json().catch(() => null)) as
-        | (LinkTokenCreateResponse & { error?: string })
-        | null;
-
-      if (!data?.link_token) {
-        setIsFetchingLinkToken(false);
-        setPlaidStatus((previous) => ({
-          ...previous,
-          fetchingLinkToken: false,
-        }));
-        throw new Error(
-          data?.error || "Plaid link token missing from response"
-        );
-      }
-
-      setPlaidUser((previous) => {
-        if (!previous) return null;
-        return {
-          ...previous,
-          linkToken: data.link_token,
-          linkTokenExpiration: new Date(
-            Date.now() + 5 * 60 * 1000
-          ).toISOString(),
-        };
-      });
-
-      setIsFetchingLinkToken(false);
+  const fetchLinkToken = async (request: LinkTokenCreateRequest) => {
+    if (!ready || !authenticated || !identityToken || hasValidLinkToken) {
       setPlaidStatus((previous) => ({
         ...previous,
         fetchingLinkToken: false,
       }));
-    },
-    [
-      authenticated,
-      hasValidLinkToken,
-      identityToken,
-      isFetchingLinkToken,
-      ready,
-      plaidUser?.connections?.length,
-    ]
-  );
+      return;
+    }
+
+    setPlaidStatus((previous) => ({
+      ...previous,
+      fetchingLinkToken: true,
+    }));
+
+    const response = await fetch("/api/plaid/link-token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "privy-id-token": identityToken ?? "",
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      setPlaidStatus((previous) => ({
+        ...previous,
+        fetchingLinkToken: false,
+      }));
+      const message = await response.text().catch(() => "");
+      throw new Error(message || "Unable to create Plaid link token");
+    }
+
+    const data = (await response.json().catch(() => null)) as
+      | (LinkTokenCreateResponse & { error?: string })
+      | null;
+
+    if (!data?.link_token) {
+      setPlaidStatus((previous) => ({
+        ...previous,
+        fetchingLinkToken: false,
+      }));
+      throw new Error(data?.error || "Plaid link token missing from response");
+    }
+
+    setPlaidUser((previous) => {
+      if (!previous) return null;
+      return {
+        ...previous,
+        linkToken: data.link_token,
+        linkTokenExpiration: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+      };
+    });
+
+    setPlaidStatus((previous) => ({
+      ...previous,
+      fetchingLinkToken: false,
+    }));
+  };
 
   useEffect(() => {
-    if (!authenticated) {
+    if (!authenticated || !ready) {
+      linkTokenRequested.current = false;
       return;
     }
 
     if (hasValidLinkToken) {
+      linkTokenRequested.current = false;
       return;
     }
 
-    if (isFetchingLinkToken) {
+    if (linkTokenRequested.current) {
       return;
     }
+
+    linkTokenRequested.current = true;
 
     const request: LinkTokenCreateRequest = {
       //todo: this should be configurable via dashboard, also have prefilling existing user data
@@ -173,15 +152,8 @@ function PlaidLinkProvider({
       products: DEFAULT_PRODUCTS,
     };
 
-    void fetchLinkToken(request);
-  }, [
-    authenticated,
-    countryCodes,
-    hasValidLinkToken,
-    isFetchingLinkToken,
-    language,
-    user?.id,
-  ]);
+    fetchLinkToken(request);
+  }, [authenticated, hasValidLinkToken, ready, identityToken]);
 
   return <>{children}</>;
 }
