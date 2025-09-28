@@ -16,8 +16,6 @@ function buildLinkTokenRequest(
     client_name,
     language = "en",
     country_codes = ["US"],
-    client_id: _clientId,
-    secret: _secret,
     products = [],
     ...rest
   } = base;
@@ -54,20 +52,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const baseRequest =
-    (await (async () => {
-      if (!request.headers.get("content-type")?.includes("application/json")) {
-        return null;
-      }
-
-      return (await request
-        .json()
-        .catch(() => null)) as Partial<LinkTokenCreateRequest> | null;
-    })()) ?? null;
+  const requestBody = await request.json();
 
   try {
     const environment = process.env.PLAID_ENV ?? "sandbox";
-    const linkTokenRequest = buildLinkTokenRequest(baseRequest);
+    const linkTokenRequest = buildLinkTokenRequest(requestBody);
 
     const plaidResponse = await fetch(
       `${

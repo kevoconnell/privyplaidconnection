@@ -95,6 +95,7 @@ export async function GET(request: NextRequest) {
 
     const filteredCategories = Object.fromEntries(
       Object.entries(categorySummary).filter(
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         ([_, category]: [string, { totalAmount: number }]) =>
           category.totalAmount > 0
       )
