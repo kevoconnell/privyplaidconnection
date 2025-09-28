@@ -275,9 +275,7 @@ export default function TransactionsPage() {
                     </h2>
                     <p className="text-base leading-7 text-secondary">
                       Access live transaction data and spending analytics from
-                      connected bank accounts. Perfect for building financial
-                      dashboards, expense tracking apps, or automated budgeting
-                      tools.
+                      connected bank accounts.
                     </p>
                   </div>
 
