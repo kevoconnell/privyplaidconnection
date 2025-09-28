@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   PrivyProvider,
   useIdentityToken,
@@ -64,87 +64,124 @@ function PlaidLinkProvider({
     }
   }, [authenticated, ready, setPlaidStatus, setPlaidUser]);
 
-  const fetchLinkToken = async (request: LinkTokenCreateRequest) => {
-    console.log(
-      "fetchLinkToken",
+  const fetchLinkToken = useCallback(
+    async (request: LinkTokenCreateRequest) => {
+      console.log(
+        "fetchLinkToken",
+        ready,
+        authenticated,
+        identityToken,
+        hasValidLinkToken
+      );
+      console.log("Early return conditions:", {
+        notReady: !ready,
+        notAuthenticated: !authenticated,
+        noIdentityToken: !identityToken,
+        hasValidToken: hasValidLinkToken,
+        plaidUser: plaidUser,
+      });
+      if (!ready || !authenticated || !identityToken || hasValidLinkToken) {
+        console.log("Early return triggered - no network call will be made");
+        linkTokenRequested.current = false;
+        setPlaidStatus((previous) => ({
+          ...previous,
+          fetchingLinkToken: false,
+        }));
+        return;
+      }
+
+      setPlaidStatus((previous) => ({
+        ...previous,
+        fetchingLinkToken: true,
+      }));
+
+      console.log("Making network call to /api/plaid/link-token");
+      const response = await fetch("/api/plaid/link-token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "privy-id-token": identityToken ?? "",
+        },
+        body: JSON.stringify(request),
+      });
+
+      if (!response.ok) {
+        setPlaidStatus((previous) => ({
+          ...previous,
+          fetchingLinkToken: false,
+        }));
+        const message = await response.text().catch(() => "");
+        throw new Error(message || "Unable to create Plaid link token");
+      }
+
+      const data = (await response.json().catch(() => null)) as
+        | (LinkTokenCreateResponse & { error?: string })
+        | null;
+
+      if (!data?.link_token) {
+        setPlaidStatus((previous) => ({
+          ...previous,
+          fetchingLinkToken: false,
+        }));
+        throw new Error(
+          data?.error || "Plaid link token missing from response"
+        );
+      }
+
+      setPlaidUser((previous) => {
+        if (!previous) return null;
+        return {
+          ...previous,
+          linkToken: data.link_token,
+          linkTokenExpiration: new Date(
+            Date.now() + 5 * 60 * 1000
+          ).toISOString(),
+        };
+      });
+
+      setPlaidStatus((previous) => ({
+        ...previous,
+        fetchingLinkToken: false,
+      }));
+    },
+    [
       ready,
       authenticated,
       identityToken,
-      hasValidLinkToken
-    );
-    console.log("Early return conditions:", {
-      notReady: !ready,
-      notAuthenticated: !authenticated,
-      noIdentityToken: !identityToken,
-      hasValidToken: hasValidLinkToken,
-      plaidUser: plaidUser,
-    });
-    if (!ready || !authenticated || !identityToken || hasValidLinkToken) {
-      console.log("Early return triggered - no network call will be made");
-      linkTokenRequested.current = false;
-      setPlaidStatus((previous) => ({
-        ...previous,
-        fetchingLinkToken: false,
-      }));
-      return;
-    }
-
-    setPlaidStatus((previous) => ({
-      ...previous,
-      fetchingLinkToken: true,
-    }));
-
-    console.log("Making network call to /api/plaid/link-token");
-    const response = await fetch("/api/plaid/link-token", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "privy-id-token": identityToken ?? "",
-      },
-      body: JSON.stringify(request),
-    });
-
-    if (!response.ok) {
-      setPlaidStatus((previous) => ({
-        ...previous,
-        fetchingLinkToken: false,
-      }));
-      const message = await response.text().catch(() => "");
-      throw new Error(message || "Unable to create Plaid link token");
-    }
-
-    const data = (await response.json().catch(() => null)) as
-      | (LinkTokenCreateResponse & { error?: string })
-      | null;
-
-    if (!data?.link_token) {
-      setPlaidStatus((previous) => ({
-        ...previous,
-        fetchingLinkToken: false,
-      }));
-      throw new Error(data?.error || "Plaid link token missing from response");
-    }
-
-    setPlaidUser((previous) => {
-      if (!previous) return null;
-      return {
-        ...previous,
-        linkToken: data.link_token,
-        linkTokenExpiration: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
-      };
-    });
-
-    setPlaidStatus((previous) => ({
-      ...previous,
-      fetchingLinkToken: false,
-    }));
-  };
+      hasValidLinkToken,
+      setPlaidStatus,
+      setPlaidUser,
+      plaidUser,
+    ]
+  );
 
   useEffect(() => {
+    console.log("useEffect triggered:", {
+      linkTokenRequested: linkTokenRequested.current,
+      ready,
+      authenticated,
+      hasValidLinkToken,
+      identityToken: !!identityToken,
+    });
+
+    // Reset the flag if conditions have changed and we should retry
+    if (
+      linkTokenRequested.current &&
+      ready &&
+      authenticated &&
+      identityToken &&
+      !hasValidLinkToken
+    ) {
+      console.log("Conditions met, resetting linkTokenRequested flag");
+      linkTokenRequested.current = false;
+    }
+
     if (linkTokenRequested.current) {
+      console.log("linkTokenRequested is true, skipping");
       return;
     }
 
+    console.log("Setting linkTokenRequested to true");
     linkTokenRequested.current = true;
 
     const request: LinkTokenCreateRequest = {
@@ -160,7 +197,16 @@ function PlaidLinkProvider({
     };
 
     fetchLinkToken(request);
-  }, [authenticated, hasValidLinkToken, ready, identityToken, countryCodes, language, user?.id, fetchLinkToken]);
+  }, [
+    authenticated,
+    hasValidLinkToken,
+    ready,
+    identityToken,
+    countryCodes,
+    language,
+    user?.id,
+    fetchLinkToken,
+  ]);
 
   return <>{children}</>;
 }
