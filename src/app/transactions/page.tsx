@@ -193,7 +193,7 @@ export default function TransactionsPage() {
   };
 
   if (ready && (!user || !user.plaid?.connections)) {
-    router.push("/");
+    router.replace("/");
     return null;
   }
 
