@@ -132,18 +132,12 @@ async function upsertTransactionsInBackground(
 
       if (data.transactions.length) {
         const values = data.transactions.map((txn) => {
-          let amount = txn.amount ?? 0;
-          //if category is TRAVEL, change amount to positive (bug in plaid sandbox)
-          if (txn.personal_finance_category?.primary === "TRAVEL") {
-            //make amount positive
-            amount = Math.abs(amount);
-          }
           return {
             plaidConnectionId: connectionId,
             plaidTransactionId: txn.transaction_id,
             accountId: txn.account_id,
             accountName: accountsById.get(txn.account_id) ?? txn.account_id,
-            amount: amount.toString(),
+            amount: txn.amount.toString(),
             isoCurrencyCode: txn.iso_currency_code ?? null,
             unofficialCurrencyCode: txn.unofficial_currency_code ?? null,
             date: txn.date,

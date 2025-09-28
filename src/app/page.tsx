@@ -66,7 +66,7 @@ export default function PlaidLinkPage() {
             "Plaid allows you to connect your financial institutions with your Privy app.",
           primaryCtaLabel: "Connect with Plaid",
           supplementalNote:
-            'Tap "Continue as Guest", pick Huntington, and use user_good / pass_good to finish.',
+            'Tap "Continue as Guest", pick Regions Bank, and use user_good / pass_good to finish.',
         };
       default:
         return {

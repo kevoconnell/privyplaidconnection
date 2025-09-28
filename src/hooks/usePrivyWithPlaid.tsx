@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIdentityToken, usePrivy, User } from "@privy-io/react-auth";
 import {
+  PlaidLinkOnSuccessMetadata,
   usePlaidLink,
   type PlaidLinkOnEvent,
   type PlaidLinkOnExit,
@@ -36,50 +37,47 @@ export function usePrivyWithPlaid(): UsePrivyWithPlaidReturn {
   const shouldOpenRef = useRef(false);
   const callbacksRef = useRef<LinkPlaidCallbacks>({});
 
-  const hookConfig = useMemo<PlaidLinkOptionsWithLinkToken>(
-    () => ({
-      token: plaidUser?.linkToken ?? null,
-      async onSuccess(publicToken, metadata) {
-        callbacksRef.current.onSuccess?.(publicToken, metadata);
-        shouldOpenRef.current = false;
-        const connectionResponse = await fetch("/api/plaid/connect", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "privy-id-token": identityToken ?? "",
-          },
-          body: JSON.stringify({ publicToken, metadata }),
-        });
+  const hookConfig = {
+    token: plaidUser?.linkToken ?? null,
+    async onSuccess(publicToken: string, metadata: PlaidLinkOnSuccessMetadata) {
+      callbacksRef.current.onSuccess?.(publicToken, metadata);
+      shouldOpenRef.current = false;
+      const connectionResponse = await fetch("/api/plaid/connect", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "privy-id-token": identityToken ?? "",
+        },
+        body: JSON.stringify({ publicToken, metadata }),
+      });
 
-        if (!connectionResponse.ok) {
-          throw new Error("Failed to connect Plaid");
-        }
-        const connectionData = await connectionResponse.json();
-        setPlaidUser((previous) => ({
-          ...previous,
-          ...connectionData.user,
-          connections: connectionData.user.connections,
-        }));
-        setPlaidStatus((previous) => ({
-          ...previous,
-          linking: false,
-          error: null,
-        }));
-      },
-      onExit(error, metadata) {
-        callbacksRef.current.onExit?.(error, metadata);
-        shouldOpenRef.current = false;
-        setPlaidStatus((previous) => ({
-          ...previous,
-          linking: false,
-        }));
-      },
-      onEvent(eventName, metadata) {
-        callbacksRef.current.onEvent?.(eventName, metadata);
-      },
-    }),
-    [plaidUser, setPlaidStatus, setPlaidUser, identityToken]
-  );
+      if (!connectionResponse.ok) {
+        throw new Error("Failed to connect Plaid");
+      }
+      const connectionData = await connectionResponse.json();
+      setPlaidUser((previous) => ({
+        ...previous,
+        ...connectionData.user,
+        connections: connectionData.user.connections,
+      }));
+      setPlaidStatus((previous) => ({
+        ...previous,
+        linking: false,
+        error: null,
+      }));
+    },
+    onExit(error, metadata) {
+      callbacksRef.current.onExit?.(error, metadata);
+      shouldOpenRef.current = false;
+      setPlaidStatus((previous) => ({
+        ...previous,
+        linking: false,
+      }));
+    },
+    onEvent(eventName, metadata) {
+      callbacksRef.current.onEvent?.(eventName, metadata);
+    },
+  };
 
   const { open, ready, error, exit } = usePlaidLink(hookConfig);
 
@@ -189,7 +187,7 @@ export function usePrivyWithPlaid(): UsePrivyWithPlaidReturn {
       linking: false,
       error: null,
     }));
-  }, [setPlaidStatus, setPlaidUser]);
+  }, [setPlaidStatus, setPlaidUser, identityToken, privy]);
 
   const privyUserWithPlaid = useMemo(() => {
     if (!privy.user) {

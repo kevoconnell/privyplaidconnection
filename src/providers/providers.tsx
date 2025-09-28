@@ -65,12 +65,14 @@ function PlaidLinkProvider({
 
   const fetchLinkToken = useCallback(
     async (request: LinkTokenCreateRequest) => {
+      //if
       if (
         !ready ||
         !authenticated ||
         isFetchingLinkToken ||
         !identityToken ||
-        hasValidLinkToken
+        hasValidLinkToken ||
+        (plaidUser?.connections?.length ?? 0) > 0
       ) {
         setPlaidStatus((previous) => ({
           ...previous,

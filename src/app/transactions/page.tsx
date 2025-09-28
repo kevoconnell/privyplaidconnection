@@ -65,7 +65,6 @@ export default function TransactionsPage() {
 
     const transactions = data.transactions;
 
-    // Calculate income and expenses
     const totalExpenses = transactions
       .filter((tx) => tx.amount > 0)
       .reduce((sum, tx) => sum + tx.amount, 0);
@@ -74,68 +73,9 @@ export default function TransactionsPage() {
       .filter((tx) => tx.amount < 0)
       .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
 
-    const netFlow = totalIncome - totalExpenses;
-
-    // Calculate category entries for insights
-    const categoryEntries = Object.entries(data.categorySummary || {}).sort(
-      (a, b) => b[1].totalAmount - a[1].totalAmount
-    );
-
-    // Top spending category
-    const topCategory = categoryEntries[0];
-    const topCategorySpending = topCategory ? topCategory[1].totalAmount : 0;
-    const topCategoryPercentage =
-      totalExpenses > 0
-        ? ((topCategorySpending / totalExpenses) * 100).toFixed(1)
-        : "0";
-
-    // Largest transaction (by absolute value)
-    const largestTransaction = transactions
-      .filter((tx) => Math.abs(tx.amount) > 0)
-      .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))[0];
-
-    // Current month spending
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-    const monthlySpending = transactions
-      .filter((tx) => {
-        const txDate = new Date(tx.date);
-        return (
-          tx.amount > 0 &&
-          txDate.getMonth() === currentMonth &&
-          txDate.getFullYear() === currentYear
-        );
-      })
-      .reduce((sum, tx) => sum + tx.amount, 0);
-
-    // Dining spending this month
-    const diningSpending = transactions
-      .filter((tx) => {
-        const txDate = new Date(tx.date);
-        return (
-          tx.amount > 0 &&
-          txDate.getMonth() === currentMonth &&
-          txDate.getFullYear() === currentYear &&
-          tx.category.some(
-            (cat) =>
-              cat.toLowerCase().includes("food") ||
-              cat.toLowerCase().includes("dining") ||
-              cat.toLowerCase().includes("restaurant")
-          )
-        );
-      })
-      .reduce((sum, tx) => sum + tx.amount, 0);
-
     return {
       totalIncome,
       totalExpenses,
-      netFlow,
-      topCategory: topCategory ? topCategory[0] : null,
-      topCategorySpending,
-      topCategoryPercentage,
-      largestTransaction,
-      monthlySpending,
-      diningSpending,
     };
   }, [data]);
 
@@ -217,7 +157,6 @@ export default function TransactionsPage() {
         errorMessage.includes("rejected")
       ) {
         // User cancelled the signing - don't show error, just log it
-        console.log("User cancelled wallet signing");
       } else {
         // Show error for other types of failures
         alert("Failed to generate proof");
@@ -361,7 +300,10 @@ export default function TransactionsPage() {
       ) : (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="flex flex-col items-center space-y-3">
-            <div className="animate-spin rounded-full h-12 w-12 border-2 border-gray-300 border-t-primary"></div>
+            <div
+              className="rounded-full h-12 w-12 border-2 border-gray-300 border-t-blue-500"
+              style={{ animation: "spin 1s linear infinite" }}
+            ></div>
           </div>
         </div>
       )}
