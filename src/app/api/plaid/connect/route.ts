@@ -4,13 +4,12 @@ import {
   transactions,
   users,
 } from "@/initalizers/db/drizzle/schema";
-import privy from "@/initalizers/privy";
 import { UserWithConnections } from "@/types/plaid";
 import { PLAID_BASE_URLS, sanitizePlaidConnections } from "@/utils/plaid";
 import { authenticatePrivyUser } from "@/utils/privy";
 
 import { eq, sql } from "drizzle-orm";
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import type {
   ItemPublicTokenExchangeResponse,
   PlaidError,
@@ -285,10 +284,12 @@ export async function POST(request: NextRequest) {
       connections: sanitizePlaidConnections(result.connections),
     };
 
-    void upsertTransactionsInBackground(
-      result.connection.id,
-      result.connection.accessToken
-    );
+    after(async () => {
+      await upsertTransactionsInBackground(
+        result.connection.id,
+        result.connection.accessToken
+      );
+    });
 
     return NextResponse.json({ user: userWithConnections });
   } catch (error) {
