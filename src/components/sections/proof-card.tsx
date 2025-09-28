@@ -121,7 +121,7 @@ export function ProofCard({
                 <div className="p-3 bg-muted/50 rounded-lg text-sm text-secondary space-y-1">
                   <p>
                     <strong>Category:</strong>{" "}
-                    {selectedCategory.replace(/_/g, " ")}
+                    {selectedCategory?.replace(/_/g, " ") || "Unknown"}
                   </p>
                   <p>
                     <strong>Threshold:</strong> ${threshold.toFixed(2)}
@@ -286,7 +286,7 @@ export function ProofCard({
                           Category
                         </p>
                         <p className="font-medium text-xs break-words">
-                          {selectedCategory.replace(/_/g, " ")}
+                          {selectedCategory?.replace(/_/g, " ") || "Unknown"}
                         </p>
                       </div>
                       <div className="p-1.5 bg-muted/50 rounded min-w-0 overflow-hidden">

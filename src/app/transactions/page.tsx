@@ -24,14 +24,14 @@ export default function TransactionsPage() {
   const { signTypedData } = useSignTypedData();
 
   const [selectedCategory, setSelectedCategory] = useState(
-    data?.categorySummary
+    data?.categorySummary && Object.keys(data.categorySummary).length > 0
       ? Object.keys(data.categorySummary)[0]
       : "Food and Drink"
   );
   const [threshold, setThreshold] = useState(10);
 
   useEffect(() => {
-    if (data?.categorySummary) {
+    if (data?.categorySummary && Object.keys(data.categorySummary).length > 0) {
       setSelectedCategory(Object.keys(data.categorySummary)[0]);
     }
   }, [data]);
