@@ -1,13 +1,9 @@
 import {
   keccak256,
-  verifyMessage,
-  createWalletClient,
-  custom,
   recoverTypedDataAddress,
   getAddress,
   isAddressEqual,
 } from "viem";
-import { mainnet } from "viem/chains";
 
 const domain = {
   name: "PlaidAttestation",
@@ -187,7 +183,9 @@ export async function verifyAttestation(params: {
     }
 
     return { ok: true };
-  } catch (error) {
-    return { ok: false, reason: "verification failed" };
+  } catch (_error) {
+    console.error("Failed to verify attestation:", _error);
+
+    return { ok: false, reason: "verification failed" + _error };
   }
 }

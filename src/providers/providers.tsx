@@ -1,17 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import {
   PrivyProvider,
   useIdentityToken,
   usePrivy,
 } from "@privy-io/react-auth";
-import {
-  Provider as JotaiProvider,
-  createStore,
-  useAtom,
-  useSetAtom,
-} from "jotai";
+import { Provider as JotaiProvider, createStore, useAtom } from "jotai";
 import {
   type LinkTokenCreateRequest,
   type LinkTokenCreateResponse,

@@ -21,6 +21,7 @@ export const DEFAULT_PRODUCTS: LinkTokenCreateRequest["products"] = [
 export function sanitizePlaidConnection(
   connection: typeof plaidConnections.$inferSelect
 ): SanitizedPlaidConnection {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { accessToken, ...rest } = connection;
   return rest;
 }

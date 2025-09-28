@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useIdentityToken, usePrivy, User } from "@privy-io/react-auth";
 import {
   PlaidLinkOnSuccessMetadata,
@@ -8,7 +8,6 @@ import {
   type PlaidLinkOnEvent,
   type PlaidLinkOnExit,
   type PlaidLinkOnSuccess,
-  type PlaidLinkOptionsWithLinkToken,
 } from "react-plaid-link";
 import { useAtom, useSetAtom } from "jotai";
 
@@ -87,7 +86,7 @@ export function usePrivyWithPlaid(): UsePrivyWithPlaidReturn {
     },
   };
 
-  const { open, ready, error, exit } = usePlaidLink(hookConfig);
+  const { open, ready, exit } = usePlaidLink(hookConfig);
 
   //call login when there is a user and authenticated
   useEffect(() => {

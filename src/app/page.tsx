@@ -4,12 +4,11 @@ import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAtomValue } from "jotai";
 
-import { FloatingControls } from "@/components/ui/floating-controls";
 import { usePrivyWithPlaid } from "@/hooks/usePrivyWithPlaid";
 import { plaidStatusAtom } from "@/store/plaid";
 import { ConnectionStatusCard } from "@/components/ui/connection-status-card";
 import { StepCard } from "@/components/ui/step-card";
-import { SignInButton } from "@/components/sign-in-button";
+
 import Header from "@/components/ui/header";
 
 export default function PlaidLinkPage() {

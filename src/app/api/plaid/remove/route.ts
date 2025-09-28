@@ -4,11 +4,11 @@ import {
   transactions,
   users,
 } from "@/initalizers/db/drizzle/schema";
-import privy from "@/initalizers/privy";
+
 import { PLAID_BASE_URLS } from "@/utils/plaid";
 import { type UserWithConnections } from "@/types/plaid";
 
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { authenticatePrivyUser } from "@/utils/privy";
 

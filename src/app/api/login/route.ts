@@ -1,6 +1,6 @@
 import db from "@/initalizers/db";
 import { plaidConnections, users } from "@/initalizers/db/drizzle/schema";
-import privy from "@/initalizers/privy";
+
 import { UserWithConnections } from "@/types/plaid";
 import { sanitizePlaidConnections } from "@/utils/plaid";
 import { authenticatePrivyUser } from "@/utils/privy";

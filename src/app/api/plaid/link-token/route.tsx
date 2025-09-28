@@ -1,16 +1,9 @@
-import privy from "@/initalizers/privy";
 import { PLAID_BASE_URLS } from "@/utils/plaid";
 import { authenticatePrivyUser } from "@/utils/privy";
 
-import { cookies, headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
-import type {
-  LinkTokenCreateRequest,
-  LinkTokenCreateRequestUser,
-  LinkTokenCreateResponse,
-  Products,
-} from "plaid";
+import type { LinkTokenCreateRequest, LinkTokenCreateResponse } from "plaid";
 
 function buildLinkTokenRequest(
   base: Partial<LinkTokenCreateRequest> | null

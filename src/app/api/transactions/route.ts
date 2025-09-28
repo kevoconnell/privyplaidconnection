@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/initalizers/db";
-import privy from "@/initalizers/privy";
+
 import {
   transactions,
   plaidConnections,
 } from "@/initalizers/db/drizzle/schema";
 import { eq, desc } from "drizzle-orm";
 import { Transaction } from "@/hooks/useTransactions";
-import { assert } from "node:console";
+
 import { authenticatePrivyUser } from "@/utils/privy";
 
 export async function GET(request: NextRequest) {

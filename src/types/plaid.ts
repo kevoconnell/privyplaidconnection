@@ -1,4 +1,3 @@
-import type { PlaidLinkOnSuccessMetadata } from "react-plaid-link";
 import type { InferSelectModel } from "drizzle-orm";
 import { plaidConnections, users } from "@/initalizers/db/drizzle/schema";
 export interface PlaidUserWithConnections
