@@ -66,7 +66,8 @@ export function usePrivyWithPlaid(): UsePrivyWithPlaidReturn {
         error: null,
       }));
     },
-    onExit(error, metadata) {
+    //todo: fix any
+    onExit(error: any, metadata: any) {
       callbacksRef.current.onExit?.(error, metadata);
       shouldOpenRef.current = false;
       setPlaidStatus((previous) => ({
@@ -74,7 +75,8 @@ export function usePrivyWithPlaid(): UsePrivyWithPlaidReturn {
         linking: false,
       }));
     },
-    onEvent(eventName, metadata) {
+    //todo: fix any
+    onEvent(eventName: any, metadata: any) {
       callbacksRef.current.onEvent?.(eventName, metadata);
     },
   };
