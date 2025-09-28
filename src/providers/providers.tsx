@@ -65,7 +65,15 @@ function PlaidLinkProvider({
   }, [authenticated, ready, setPlaidStatus, setPlaidUser]);
 
   const fetchLinkToken = async (request: LinkTokenCreateRequest) => {
+    console.log(
+      "fetchLinkToken",
+      ready,
+      authenticated,
+      identityToken,
+      hasValidLinkToken
+    );
     if (!ready || !authenticated || !identityToken || hasValidLinkToken) {
+      linkTokenRequested.current = false;
       setPlaidStatus((previous) => ({
         ...previous,
         fetchingLinkToken: false,
@@ -124,16 +132,6 @@ function PlaidLinkProvider({
   };
 
   useEffect(() => {
-    if (!authenticated || !ready) {
-      linkTokenRequested.current = false;
-      return;
-    }
-
-    if (hasValidLinkToken) {
-      linkTokenRequested.current = false;
-      return;
-    }
-
     if (linkTokenRequested.current) {
       return;
     }
