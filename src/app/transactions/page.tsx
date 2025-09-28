@@ -271,7 +271,7 @@ export default function TransactionsPage() {
                 <div className="flex flex-col">
                   <div className="mb-4">
                     <h2 className="text-2xl font-semibold leading-tight text-primary mb-2">
-                      Real-Time Financial Insights
+                      Real-time financial insights
                     </h2>
                     <p className="text-base leading-7 text-secondary">
                       Access live transaction data and spending analytics from
