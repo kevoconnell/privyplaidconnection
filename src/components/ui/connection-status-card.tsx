@@ -39,43 +39,45 @@ export function ConnectionStatusCard({
         </div>
       ) : null}
 
-      <div className="grid gap-2.5 text-sm text-secondary">
-        <div className="rounded-2xl border px-3 py-3 surface-panel">
-          <p className="text-xs uppercase tracking-widest text-secondary">
-            Link token
-          </p>
-          <div className="group relative inline-block">
-            <p className="break-all text-sm font-medium text-primary">
-              {linkTokenPreview}
-            </p>
-          </div>
-        </div>
+      <div className="space-y-2.5">
+        <div className="">
+          <ul className="space-y-2 text-sm text-secondary">
+            <li className="rounded-xl border px-3 py-3 surface-panel overflow-hidden">
+              <p className="text-xs uppercase tracking-widest text-secondary">
+                Link token
+              </p>
+              <p className="break-all text-sm font-medium text-primary">
+                {linkTokenPreview}
+              </p>
+            </li>
 
-        <div className="rounded-2xl border px-3 py-3 surface-panel">
-          <p className="text-xs uppercase tracking-widest text-secondary">
-            Link Token Expiration
-          </p>
-          <p className="text-sm font-medium text-primary">
-            {linkTokenExpiration}
-          </p>
-        </div>
+            <li className="rounded-xl border px-3 py-3 surface-panel overflow-hidden">
+              <p className="text-xs uppercase tracking-widest text-secondary">
+                Link Token Expiration
+              </p>
+              <p className="text-sm font-medium text-primary">
+                {linkTokenExpiration}
+              </p>
+            </li>
 
-        <div className="rounded-2xl border px-3 py-3 surface-panel">
-          <p className="text-xs uppercase tracking-widest text-secondary">
-            User ID
-          </p>
-          <p className="text-sm font-medium text-primary">
-            {plaidUser?.id ?? "—"}
-          </p>
-        </div>
+            <li className="rounded-xl border px-3 py-3 surface-panel overflow-hidden">
+              <p className="text-xs uppercase tracking-widest text-secondary">
+                User ID
+              </p>
+              <p className="text-sm font-medium text-primary">
+                {plaidUser?.id.slice(0, 8)}...{plaidUser?.id.slice(-8)}
+              </p>
+            </li>
 
-        <div className="rounded-2xl border px-3 py-3 surface-panel">
-          <p className="text-xs uppercase tracking-widest text-secondary">
-            Email
-          </p>
-          <p className="text-sm font-medium text-primary">
-            {plaidUser?.email ?? "—"}
-          </p>
+            <li className="rounded-xl border px-3 py-3 surface-panel overflow-hidden">
+              <p className="text-xs uppercase tracking-widest text-secondary">
+                Email
+              </p>
+              <p className="text-sm font-medium text-primary">
+                {plaidUser?.email ?? "—"}
+              </p>
+            </li>
+          </ul>
         </div>
       </div>
 
@@ -98,7 +100,7 @@ export function ConnectionStatusCard({
                     </span>
                   </p>
                   <p className="text-xs text-secondary">
-                    Item ID: {connection.plaidItemId}
+                    Item ID: {connection.plaidItemId?.slice(0, 8)}...
                   </p>
                   <p className="text-xs text-secondary">
                     Created:{" "}
