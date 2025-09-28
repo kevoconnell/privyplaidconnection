@@ -300,10 +300,7 @@ export default function TransactionsPage() {
       ) : (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="flex flex-col items-center space-y-3">
-            <div
-              className="rounded-full h-12 w-12 border-2 border-gray-300 border-t-blue-500"
-              style={{ animation: "spin 1s linear infinite" }}
-            ></div>
+            <div className="rounded-full h-12 w-12 border-2 border-gray-300 border-t-blue-500 animate-spin"></div>
           </div>
         </div>
       )}
