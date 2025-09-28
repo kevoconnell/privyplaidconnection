@@ -86,8 +86,10 @@ export function PlaidPieChart({
                             key="label"
                             className="flex items-center space-x-2"
                           >
+                            {/* note: we need style here for the color to be in the tool tip - bg doesn't work  */}
                             <div
-                              className={`w-3 h-3 rounded-full bg-[${color}]`}
+                              className={`w-3 h-3 rounded-full`}
+                              style={{ backgroundColor: color }}
                             />
                             <span>{label}</span>
                           </div>,
