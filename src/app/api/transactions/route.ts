@@ -10,9 +10,9 @@ import { Transaction } from "@/hooks/useTransactions";
 
 import { authenticatePrivyUser } from "@/utils/privy";
 
+//todo: cache this
 export async function GET(request: NextRequest) {
   try {
-    // Verify Privy token
     const privyUser = await authenticatePrivyUser(request);
 
     const userId = privyUser?.id ?? "";

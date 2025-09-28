@@ -1,9 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useRouter } from "next/navigation";
 import { useAtomValue } from "jotai";
-
 import { usePrivyWithPlaid } from "@/hooks/usePrivyWithPlaid";
 import { plaidStatusAtom } from "@/store/plaid";
 import { ConnectionStatusCard } from "@/components/ui/connection-status-card";
@@ -12,10 +10,7 @@ import { StepCard } from "@/components/ui/step-card";
 import Header from "@/components/ui/header";
 
 export default function PlaidLinkPage() {
-  const router = useRouter();
-
-  const { linkPlaid, unlinkPlaid, authenticated, ready, login, user } =
-    usePrivyWithPlaid();
+  const { authenticated, user } = usePrivyWithPlaid();
   const plaidUser = user?.plaid;
 
   const plaidStatus = useAtomValue(plaidStatusAtom);
@@ -30,112 +25,6 @@ export default function PlaidLinkPage() {
 
     return 3;
   }, [authenticated, plaidUser]);
-
-  // TODO: Move this to a separate hook with a atom to track current step
-  const {
-    stepLabel,
-    stepSubtitle,
-    headline,
-    bodyCopy,
-    primaryCtaLabel,
-    supplementalNote,
-  } = useMemo(() => {
-    switch (step) {
-      case 1:
-        return {
-          stepLabel: "Step 1",
-          stepSubtitle: "Sign in",
-          headline: (
-            <>
-              Create a crypto wallet with{" "}
-              <span className="text-privy">Privy</span>
-            </>
-          ),
-          bodyCopy:
-            "Privy manages authentication so you can focus on building your fintech app.",
-          primaryCtaLabel: "Sign in with Privy",
-          supplementalNote: "",
-        };
-      case 2:
-        return {
-          stepLabel: "Step 2",
-          stepSubtitle: "Connect",
-          headline: "Connect your financial institutions with Plaid",
-          bodyCopy:
-            "Plaid allows you to connect your financial institutions with your Privy app.",
-          primaryCtaLabel: "Connect with Plaid",
-          supplementalNote:
-            'Tap "Continue as Guest", pick Regions Bank, and use user_good / pass_good to finish.',
-        };
-      default:
-        return {
-          stepLabel: "Step 3",
-          stepSubtitle: "Done",
-          headline: (
-            <>
-              You now have connected <span className="text-privy">Privy</span> +
-              Plaid
-            </>
-          ),
-          bodyCopy: "Use this to get financial data for your fintech app.",
-          primaryCtaLabel: "View your linked accounts",
-          supplementalNote:
-            "Use the unlink option anytime if you want to restart the Privy + Plaid flow.",
-        };
-    }
-  }, [step]);
-
-  const linkingDisabled = useMemo(() => {
-    if (step === 1 || step === 3) {
-      return false;
-    }
-
-    return (
-      !ready ||
-      !plaidUser?.linkToken ||
-      plaidStatus.fetchingLinkToken ||
-      plaidStatus.linking
-    );
-  }, [
-    plaidStatus.fetchingLinkToken,
-    plaidStatus.linking,
-    plaidUser?.linkToken,
-    ready,
-    step,
-  ]);
-
-  const primaryButtonLabel = useMemo(() => {
-    if (step === 2) {
-      if (plaidStatus.fetchingLinkToken) {
-        return "Preparing Plaid…";
-      }
-
-      if (plaidStatus.linking) {
-        return "Opening Plaid…";
-      }
-    }
-
-    return primaryCtaLabel;
-  }, [
-    plaidStatus.fetchingLinkToken,
-    plaidStatus.linking,
-    primaryCtaLabel,
-    step,
-  ]);
-
-  const handlePrimaryCta = async () => {
-    if (step === 1) {
-      await login();
-      return;
-    }
-
-    if (step === 2) {
-      await linkPlaid();
-      return;
-    }
-
-    router.push("/plaid/redirect");
-  };
 
   return (
     <>
@@ -155,34 +44,7 @@ export default function PlaidLinkPage() {
               key={`step-${step}`}
               className="flex flex-col gap-6 md:flex-row lg:items-stretch"
             >
-              <StepCard
-                stepLabel={stepLabel}
-                stepSubtitle={stepSubtitle}
-                headline={headline}
-                body={bodyCopy}
-                supplementalNote={supplementalNote || undefined}
-                primaryAction={
-                  step === 3
-                    ? {
-                        label: "View Transactions",
-                        onClick: () => router.push("/transactions"),
-                        disabled: false,
-                      }
-                    : {
-                        label: primaryButtonLabel,
-                        onClick: handlePrimaryCta,
-                        disabled: linkingDisabled,
-                      }
-                }
-                secondaryAction={
-                  step === 3 && plaidUser?.connections.length
-                    ? {
-                        label: "Unlink Plaid",
-                        onClick: unlinkPlaid,
-                      }
-                    : undefined
-                }
-              />
+              <StepCard step={step} />
 
               <ConnectionStatusCard
                 plaidStatus={plaidStatus}
